@@ -1,0 +1,1 @@
+ var flagConfigReady = false
