@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/content"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp"
+    android:layout_marginBottom="4dp">
+
+    <View
+        android:id="@+id/line"
+        android:layout_width="20dp"
+        android:layout_height="4dp"
+        android:background="@color/colorAccent" />
+
+    <TextView
+        android:text="Holaaa"
+        android:layout_marginStart="20dp"
+        android:paddingStart="20dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:id="@+id/text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:fontFamily="@font/proxima_semibold"
+        android:textSize="28sp"
+        android:textColor="#FFF"/>
+
+</LinearLayout>
+

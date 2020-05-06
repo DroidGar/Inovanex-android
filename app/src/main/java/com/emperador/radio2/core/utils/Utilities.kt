@@ -1,4 +1,4 @@
-package com.emperador.radio2.core
+package com.emperador.radio2.core.utils
 
 import android.content.Context
 import android.content.Intent

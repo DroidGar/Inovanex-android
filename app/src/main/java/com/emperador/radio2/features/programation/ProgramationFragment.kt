@@ -7,7 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.emperador.radio2.R
-import com.emperador.radio2.core.Utilities
+import com.emperador.radio2.core.utils.Utilities
 import com.emperador.radio2.features.menu.onClose
 import com.emperador.radio2.features.programation.models.Program
 import com.emperador.radio2.features.programation.models.ProgramDay

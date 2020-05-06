@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.GONE
@@ -16,10 +15,9 @@ import androidx.core.graphics.BlendModeColorFilterCompat
 import androidx.core.graphics.BlendModeCompat
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
-import com.emperador.radio2.MainActivity
 import com.emperador.radio2.R
-import com.emperador.radio2.core.Utilities
-import com.emperador.radio2.core.openLink
+import com.emperador.radio2.core.utils.Utilities
+import com.emperador.radio2.core.utils.openLink
 import kotlinx.android.synthetic.main.fragment_ad.view.*
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit

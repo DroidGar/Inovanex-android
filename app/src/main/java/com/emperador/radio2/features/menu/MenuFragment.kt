@@ -9,10 +9,10 @@ import android.view.View.GONE
 import android.view.ViewGroup
 import com.bumptech.glide.Glide
 import com.emperador.radio2.R
-import com.emperador.radio2.core.Utilities
-import com.emperador.radio2.core.setDrawableColor
+import com.emperador.radio2.core.utils.Utilities
+import com.emperador.radio2.core.utils.setDrawableColor
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.android.synthetic.main.frag_menu.view.*
-import org.json.JSONObject
 
 
 class MenuFragment : Fragment() {
@@ -33,26 +33,23 @@ class MenuFragment : Fragment() {
         view.options.setOnClickListener { onItemSelected(4) }
         view.trivia.setOnClickListener { onItemSelected(5) }
 
-//        if (FirebaseAuth.getInstance().currentUser == null) {
-//            view.acc.visibility = GONE
-//        }
-
-        val prefs = context!!.getSharedPreferences("preferences_emperador", 0)
-        val config = prefs.getString("configuration", "{}")
-
-        val radio = JSONObject(config!!).getJSONObject("radio")
-
-        val programs = radio.getJSONArray("programming")
-        val sponsors = radio.getJSONArray("sponsors")
-
-        // if(programs.length() == 0) view.pro.visibility = GONE
-        if (sponsors.length() == 0) view.pub.visibility = GONE
+        if (FirebaseAuth.getInstance().currentUser == null) {
+            view.acc.visibility = GONE
+        }
 
         util = Utilities(context!!, null)
 
+
+
+        val sponsors = util.radio.getJSONArray("sponsors")
+
+        if (sponsors.length() == 0) view.pub.visibility = GONE
+
+
+
         color = util.getPrimaryColor()
 
-        setLogo(view, radio.getString("logo"))
+        setLogo(view, util.radio.getString("logo"))
         setColors(view)
 
         return view

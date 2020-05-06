@@ -5,8 +5,8 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import com.bumptech.glide.Glide
 import com.emperador.radio2.R
-import com.emperador.radio2.core.Utilities
-import com.emperador.radio2.core.openLink
+import com.emperador.radio2.core.utils.Utilities
+import com.emperador.radio2.core.utils.openLink
 import com.emperador.radio2.features.programation.models.Program
 import kotlinx.android.synthetic.main.activity_program_detail.*
 import org.json.JSONObject

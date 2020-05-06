@@ -8,8 +8,8 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import kotlinx.android.synthetic.main.frag_menu_publicity.view.*
 import com.emperador.radio2.R
-import com.emperador.radio2.core.Utilities
-import com.emperador.radio2.core.openLink
+import com.emperador.radio2.core.utils.Utilities
+import com.emperador.radio2.core.utils.openLink
 import com.emperador.radio2.features.menu.onClose
 
 

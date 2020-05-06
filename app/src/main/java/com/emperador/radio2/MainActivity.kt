@@ -35,13 +35,14 @@ import com.bumptech.glide.request.transition.Transition
 import com.bumptech.glide.request.transition.TransitionFactory
 import com.emperador.inovanex.features.ads.AdsHandler
 import com.emperador.inovanex.features.ads.OnAdsListener
-import com.emperador.radio2.core.Default
-import com.emperador.radio2.core.Utilities
+import com.emperador.radio2.core.utils.Default
+import com.emperador.radio2.core.utils.Utilities
 import com.emperador.radio2.features.ads.AdFragment
 import com.emperador.radio2.features.ads.PublicityFragment
 import com.emperador.radio2.features.history.HistoryFragment
 import com.emperador.radio2.features.menu.MenuFragment
 import com.emperador.radio2.features.programation.ProgramationFragment
+import com.emperador.radio2.features.trivia.TriviaActivity
 import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.Player
@@ -657,11 +658,16 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
         val ft = supportFragmentManager.beginTransaction()
         ft.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
 
+        Log.e("tag", position.toString())
+
         when (position) {
             0 -> ft.replace(R.id.container, ProgramationFragment(), "pro")
             1 -> ft.replace(R.id.container, HistoryFragment(), "his")
+            5 -> {
+                startActivity(Intent(this, TriviaActivity::class.java))
+                return
+            }
             2 -> ft.replace(R.id.container, PublicityFragment(), "pub")
-            3 -> ft.replace(R.id.container, PublicityFragment(), "pub")
             10 -> ft.replace(R.id.container, MenuFragment(), "menu")
         }
 

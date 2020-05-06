@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "818770043533",
+    "firebase_url": "https://inovanex-6f9d7.firebaseio.com",
+    "project_id": "inovanex-6f9d7",
+    "storage_bucket": "inovanex-6f9d7.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:818770043533:android:59b064322fafd02508b8c4",
+        "android_client_info": {
+          "package_name": "com.emperador.inovanex"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "818770043533-c659d414nf7qrncmopgvq1nteadspfd1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.emperador.inovanex",
+            "certificate_hash": "e55c08c105dc5f99ad651b9692116811ca8677e3"
+          }
+        },
+        {
+          "client_id": "818770043533-am0mgphnfgmleqnbumqbooe6boeu3qqi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYY4AJEgT_6VEshHh_lm8kskOq02km5wA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "818770043533-am0mgphnfgmleqnbumqbooe6boeu3qqi.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "818770043533-s2nnl85fl22k9b9v6uahluhktkg4kjlf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "emperador.radio"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
