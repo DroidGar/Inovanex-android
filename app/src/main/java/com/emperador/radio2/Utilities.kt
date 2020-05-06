@@ -3,8 +3,13 @@ package com.emperador.radio2
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
+import android.net.Uri
 import android.util.Log
 import android.widget.ImageView
+import android.widget.TextView
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Request
 import com.android.volley.Response
@@ -13,6 +18,7 @@ import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.Volley
 import org.json.JSONArray
 import org.json.JSONObject
+import java.lang.Exception
 
 enum class Default {
     SONG_NAME,
@@ -20,7 +26,7 @@ enum class Default {
     ARTWORK,
 }
 
-class Utilities(var context: Context, var artWorkListener: ArtworkListener) {
+class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
 
     var config: JSONObject
     var radio: JSONObject
@@ -36,6 +42,7 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener) {
     interface ArtworkListener {
         fun onArtworkChange(bitmap: Bitmap)
     }
+
 
     fun getDefault(default: Default): String {
         val defaults = radio.getJSONObject("defaults")
@@ -123,7 +130,7 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener) {
         val stringRequest = ImageRequest(path,
             Response.Listener { bitmap ->
 
-                artWorkListener.onArtworkChange(bitmap)
+                artWorkListener?.onArtworkChange(bitmap)
 
             }, 300, 300, ImageView.ScaleType.CENTER_CROP, Bitmap.Config.RGB_565,
             Response.ErrorListener {
@@ -133,4 +140,29 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener) {
         queue.add(stringRequest)
     }
 
+    fun roundedArtwork(): Boolean {
+        return config.getBoolean("portada_redondeada")
+    }
+
+    fun getPrimaryColor(): Int? {
+        return Color.parseColor(radio.getString("color"))
+    }
+
+}
+
+fun TextView.setDrawableColor(color: Int) {
+    compoundDrawablesRelative.filterNotNull().forEach {
+        it.colorFilter = PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN)
+    }
+}
+fun Context.openLink(link: String) {
+    if (link.isEmpty()) return
+    if (link.isBlank()) return
+
+    try {
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+        startActivity(browserIntent)
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
 }

@@ -3,11 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal">
+    android:orientation="horizontal"
+    android:paddingTop="10dp">
 
     <LinearLayout
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_weight="1"
         android:gravity="center"
         android:orientation="horizontal">
@@ -15,8 +16,10 @@
 
         <Button
             android:id="@+id/changeMediaSource"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="70dp"
+            android:background="@drawable/button_switch"
+            android:layout_height="28dp"
+            android:textSize="12sp"
             android:gravity="center"
             android:text="VIDEO" />
 
@@ -39,18 +42,28 @@
 
     <LinearLayout
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:gravity="end"
         android:layout_weight="1"
+        android:paddingEnd="22dp"
         android:orientation="horizontal">
 
         <androidx.mediarouter.app.MediaRouteButton
             android:id="@+id/mediaButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="end"
+            android:layout_gravity="end|center"
             android:mediaRouteTypes="user"
-            app:mediaRouteButtonTint="#FFF" />
+            app:mediaRouteButtonTint="#FFF"
+            android:layout_marginRight="4dp"/>
+
+        <ImageView
+            android:id="@+id/menu"
+            android:layout_gravity="end|center"
+            android:src="@drawable/ic_menu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            />
 
     </LinearLayout>
 

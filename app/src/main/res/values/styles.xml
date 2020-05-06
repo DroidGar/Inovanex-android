@@ -8,5 +8,18 @@
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:navigationBarColor">@color/colorPrimaryDark</item>
     </style>
+    <style name="MenuText" parent="@android:style/TextAppearance">
 
+        <item name="android:textSize">28sp</item>
+        <item name="android:textColor">#FFF</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">end</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:drawableEnd">@drawable/menu_line</item>
+        <item name="android:drawablePadding">12dp</item>
+        <item name="android:layout_marginBottom">12dp</item>
+        <item name="android:fontFamily">@font/proxima_semibold</item>
+
+
+    </style>
 </resources>

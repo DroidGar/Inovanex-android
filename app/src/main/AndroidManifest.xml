@@ -37,6 +37,7 @@
             tools:ignore="LockedOrientationActivity">
 
         </activity>
+        <activity android:name=".programation.ProgramDetail" />
     </application>
 
 </manifest>

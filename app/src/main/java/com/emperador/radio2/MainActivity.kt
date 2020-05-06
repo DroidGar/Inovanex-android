@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.Point
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
@@ -12,10 +13,14 @@ import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
+import android.transition.Scene
+import android.transition.Slide
+import android.transition.TransitionManager
 import android.util.Log
+import android.view.Display
+import android.view.Gravity
 import android.view.View.GONE
 import android.view.View.VISIBLE
-import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -28,6 +33,7 @@ import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.transition.DrawableCrossFadeTransition
 import com.bumptech.glide.request.transition.Transition
 import com.bumptech.glide.request.transition.TransitionFactory
+import com.emperador.radio2.programation.ProgramationFragment
 import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.Player
@@ -44,7 +50,6 @@ import com.google.android.exoplayer2.source.hls.HlsMediaSource
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.PlayerNotificationManager
-import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.MimeTypes
@@ -60,6 +65,10 @@ import com.google.android.gms.common.images.WebImage
 import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar.*
+import kotlinx.android.synthetic.main.scene1.*
+import kotlinx.android.synthetic.main.scene1.artCont
+import kotlinx.android.synthetic.main.scene1.audioView
+import kotlinx.android.synthetic.main.scene2.*
 
 enum class SourceType {
     AUDIO, VIDEO
@@ -70,12 +79,13 @@ enum class PlayerType {
 }
 
 class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
-    CastPlayer.SessionAvailabilityListener {
+    CastPlayer.SessionAvailabilityListener, MenuFragment.OnMenuListener {
 
     //https://59db7e671a1ad.streamlock.net:443/1280demo/mp4:1280demo_160p/playlist.m3u8
     //https://cdn2.instream.audio/:8007/stream
 
 
+    private var playerMinimized: Boolean = false
     private var mediaCastItems = mutableListOf<MediaQueueItem>()
     private var mediaCastInfo = mutableListOf<MediaInfo>()
     private lateinit var notificationManager: PlayerNotificationManager
@@ -98,6 +108,8 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
     private var artistName = ""
     private var artworkBitmap: Bitmap? = null
 
+    private var qualityOptionsArray: ArrayList<String> = ArrayList()
+
 
     // CAST
     private lateinit var mSessionManager: SessionManager
@@ -112,9 +124,17 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
     private var lastSelectedVideoQuality = 0
 
 
+    private lateinit var scene1: Scene
+    private lateinit var scene2: Scene
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        scene1 = Scene.getSceneForLayout(sceneRoot, R.layout.scene1, this)
+        scene2 = Scene.getSceneForLayout(sceneRoot, R.layout.scene2, this)
+
+        scene1.enter()
 
         util = Utilities(this, this)
 
@@ -150,19 +170,19 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
             switchSourceType()
         }
 
-        quality.setOnItemClickListener { _, _, position, _ ->
-            var index = position
-
-            if (currentSourceType == SourceType.VIDEO) {
-                index = position + mediaSourcesAudio.size
-                onVideoQualityChange(index)
-            } else if (currentSourceType == SourceType.AUDIO) {
-                onAudioQualityChange(index)
-            }
-
-            selectedMediaSourceIndex = index
-
-        }
+//        quality.setOnItemClickListener { _, _, position, _ ->
+//            var index = position
+//
+//            if (currentSourceType == SourceType.VIDEO) {
+//                index = position + mediaSourcesAudio.size
+//                onVideoQualityChange(index)
+//            } else if (currentSourceType == SourceType.AUDIO) {
+//                onAudioQualityChange(index)
+//            }
+//
+//            selectedMediaSourceIndex = index
+//
+//        }
 
         CastButtonFactory.setUpMediaRouteButton(applicationContext, mediaButton)
         mCastContext = CastContext.getSharedInstance(this)
@@ -174,7 +194,12 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
 
         switchSourceType()
 
+        menu.setOnClickListener {
+            onMenuItemSelected(10)
+        }
+
     }
+
 
     private fun onVideoQualityChange(index: Int) {
         lastSelectedVideoQuality = index
@@ -189,24 +214,24 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
 
     private fun updateHomeScreen() {
 
-        var optionsArray: ArrayList<String> = ArrayList()
-
+        if (!util.roundedArtwork()) {
+            artCont.radius = 0f
+        }
 
         if (currentPlayerType == PlayerType.LOCAL) {
 
 
             if (currentSourceType == SourceType.AUDIO) {
-                optionsArray = mediaSourcesAudio.map { it.value.tag } as ArrayList<String>
+                qualityOptionsArray = mediaSourcesAudio.map { it.value.tag } as ArrayList<String>
 
                 playerView.visibility = GONE
                 audioView.visibility = VISIBLE
 
                 song.text = sonName
                 artist.text = artistName
-                artwork.setImageBitmap(artworkBitmap)
 
             } else if (currentSourceType == SourceType.VIDEO) {
-                optionsArray = mediaSourcesVideo.map { it.value.tag } as ArrayList<String>
+                qualityOptionsArray = mediaSourcesVideo.map { it.value.tag } as ArrayList<String>
 
                 playerView.visibility = VISIBLE
                 audioView.visibility = GONE
@@ -218,20 +243,43 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
             // Mostrar cast view
 
             if (currentSourceType == SourceType.VIDEO) {
-                optionsArray = mediaSourcesVideo.map { it.value.tag } as ArrayList<String>
+                qualityOptionsArray = mediaSourcesVideo.map { it.value.tag } as ArrayList<String>
 
             } else if (currentSourceType == SourceType.AUDIO) {
-                optionsArray = mediaSourcesAudio.map { it.value.tag } as ArrayList<String>
+                qualityOptionsArray = mediaSourcesAudio.map { it.value.tag } as ArrayList<String>
 
             }
         }
 
-        val adapter = ArrayAdapter(this, R.layout.quality_row, optionsArray)
-        quality.adapter = adapter
+//        val adapter = ArrayAdapter(this, R.layout.quality_row, optionsArray)
+//        quality.adapter = adapter
 
         glassImage(artworkBitmap, backgronudImage)
 
         Glide.with(this).load(util.getLogo()).into(logo)
+
+
+        if (playerMinimized) {
+
+            artwork2.setImageBitmap(artworkBitmap)
+
+            song2.text = song.text.split(' ').joinToString(" ") { it.capitalize() }
+            artist2.text = artist.text.split(' ').joinToString(" ") { it.capitalize() }
+
+            song2.isSelected = true
+            artist2.isSelected = true
+
+        } else {
+
+            artwork.setImageBitmap(artworkBitmap)
+
+            song.text = song.text.split(' ').joinToString(" ") { it.capitalize() }
+            artist.text = artist.text.split(' ').joinToString(" ") { it.capitalize() }
+
+            song.isSelected = true
+            artist.isSelected = true
+        }
+
 
     }
 
@@ -469,7 +517,9 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
 
         }
 
+
     private val metadataOutput = MetadataOutput {
+
         Log.e("TAG", it.toString())
 
         for (i in 0 until it.length()) {
@@ -550,6 +600,61 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
             // In portrait
             playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT
         }
+    }
+
+    private val transitionListener = object : android.transition.Transition.TransitionListener {
+        override fun onTransitionEnd(transition: android.transition.Transition?) {
+            updateHomeScreen()
+        }
+
+        override fun onTransitionResume(transition: android.transition.Transition?) {
+        }
+
+        override fun onTransitionPause(transition: android.transition.Transition?) {
+        }
+
+        override fun onTransitionCancel(transition: android.transition.Transition?) {
+        }
+
+        override fun onTransitionStart(transition: android.transition.Transition?) {
+        }
+    }
+
+    private fun minimizePlayer(minimize: Boolean) {
+        playerMinimized = minimize
+
+        val display: Display = windowManager.defaultDisplay
+        val point = Point()
+        display.getSize(point)
+        val width: Int = point.x
+        val height: Int = point.y
+
+
+        if (minimize) {
+            val explode = Slide(Gravity.START)
+            explode.addListener(transitionListener)
+            TransitionManager.go(scene2, explode)
+        } else {
+            val explode = Slide(Gravity.START)
+            explode.addListener(transitionListener)
+            TransitionManager.go(scene1, explode)
+        }
+
+    }
+
+    override fun onMenuItemSelected(position: Int) {
+
+        val ft = supportFragmentManager.beginTransaction()
+        ft.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+
+        when (position) {
+            0 -> ft.replace(R.id.container, ProgramationFragment(), "pro")
+            1 -> ft.replace(R.id.container, HistoryFragment(), "his")
+            10 -> ft.replace(R.id.container, MenuFragment(), "menu")
+        }
+
+        ft.addToBackStack("pro")
+        ft.commitAllowingStateLoss()
     }
 }
 

@@ -1,0 +1,47 @@
+<resources>
+    <string name="app_name">Inovanex</string>
+
+    <string name="facebook_app_id">546945202825468</string>
+    <string name="fb_login_protocol_scheme">fb546945202825468</string>
+    <string name="chrome_cast">Chrome Cast</string>
+    <string name="menu">Menu</string>
+    <string name="playback_channel_name">channle name</string>
+    <string name="default_notification_channel_id">channel</string>
+
+
+    <string name="program">Programación</string>
+    <string name="history">Historía</string>
+    <string name="trivia">Trivias</string>
+    <string name="sponsors">Sponsors</string>
+    <string name="advnce_adjustments">ajustes avanzados</string>
+    <string name="logout">cerrar sesión</string>
+    <string name="en_vivo">EN VIVO</string>
+    <string name="reproduciendo">Reproduciendo</string>
+    <string name="identify">Identificate para poder comentar</string>
+    <string name="identificate">Identificate</string>
+    <string name="ingresar_con_google">Ingresar con Google</string>
+    <string name="ingresar_con_facebook">Ingresar con Facebook</string>
+    <string name="sacar_foto">Sacar foto</string>
+    <string name="elegir_galeria">Elegir de la galería</string>
+    <string name="cancelar">Cancelar</string>
+    <string name="seleccionar_imagen">Seleccionar imagen</string>
+    <string name="no_hay_trivias">No hay trivias disponibles</string>
+    <string name="te_avisaremos">Te avisaremos por medio de una notificación cuando existan trivias para participar</string>
+    <string name="entendido">Entendido!</string>
+    <string name="resultado">Resultado:</string>
+    <string name="publicaremos">Publicaremos el ganador una vez finalizado el concurso</string>
+    <string name="gracias">gracias por participar!</string>
+    <string name="elegir">Elegir</string>
+    <string name="valido">concurso vàlido desde el</string>
+    <string name="al">al</string>
+    <string name="correctas">correctas</string>
+    <string name="incorrectas">incorrectas</string>
+    <string name="segundos">segundos</string>
+    <string name="incorrecto_sin_responder">Incorrecto sin responder</string>
+    <string name="correcto">Correcto!</string>
+    <string name="incorrecto">Incorrecto!</string>
+    <string name="siguiente_pregunta">Siguiente pregunta</string>
+    <string name="comenta">comenta</string>
+
+
+</resources>
