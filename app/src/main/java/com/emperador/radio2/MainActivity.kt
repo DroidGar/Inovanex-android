@@ -33,8 +33,11 @@ import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.transition.DrawableCrossFadeTransition
 import com.bumptech.glide.request.transition.Transition
 import com.bumptech.glide.request.transition.TransitionFactory
+import com.emperador.inovanex.features.ads.AdsHandler
+import com.emperador.inovanex.features.ads.OnAdsListener
 import com.emperador.radio2.core.Default
 import com.emperador.radio2.core.Utilities
+import com.emperador.radio2.features.ads.AdFragment
 import com.emperador.radio2.features.ads.PublicityFragment
 import com.emperador.radio2.features.history.HistoryFragment
 import com.emperador.radio2.features.menu.MenuFragment
@@ -74,6 +77,7 @@ import kotlinx.android.synthetic.main.scene1.*
 import kotlinx.android.synthetic.main.scene1.artCont
 import kotlinx.android.synthetic.main.scene1.audioView
 import kotlinx.android.synthetic.main.scene2.*
+import org.json.JSONObject
 
 enum class SourceType {
     AUDIO, VIDEO
@@ -84,7 +88,7 @@ enum class PlayerType {
 }
 
 class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
-    CastPlayer.SessionAvailabilityListener, MenuFragment.OnMenuListener {
+    CastPlayer.SessionAvailabilityListener, MenuFragment.OnMenuListener, OnAdsListener {
 
     //https://59db7e671a1ad.streamlock.net:443/1280demo/mp4:1280demo_160p/playlist.m3u8
     //https://cdn2.instream.audio/:8007/stream
@@ -203,6 +207,7 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
             onMenuItemSelected(10)
         }
 
+        AdsHandler(this)
     }
 
 
@@ -662,6 +667,20 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
 
         ft.addToBackStack("pro")
         ft.commitAllowingStateLoss()
+    }
+
+    override fun onAdsShow(ads: JSONObject) {
+
+        val ft = supportFragmentManager.beginTransaction()
+        ft.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+
+        val fragment = AdFragment()
+        val bundle = Bundle()
+        bundle.putString("ad", ads.toString())
+        fragment.arguments = bundle
+        ft.replace(R.id.container, fragment, "ads")
+        ft.commitAllowingStateLoss()
+
     }
 }
 

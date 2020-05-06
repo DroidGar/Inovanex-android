@@ -47,7 +47,6 @@ class AdFragment : Fragment() {
         val canDismiss = json.getLong("canDismiss")
         val type = json.getInt("type")
 
-        Log.e("tag", "$json")
         view.countdown.text = TimeUnit.MILLISECONDS.toSeconds(canDismiss).toString()
 
         val timer = object : CountDownTimer(canDismiss, 1000) {
