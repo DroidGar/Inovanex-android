@@ -1,6 +1,6 @@
-package com.emperador.radio2.programation.domain
+package com.emperador.radio2.features.programation.domain
 
-import com.emperador.radio2.programation.models.Program
+import com.emperador.radio2.features.programation.models.Program
 
 abstract class ProgramDayContract {
 

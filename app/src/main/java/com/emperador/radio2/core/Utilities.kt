@@ -1,4 +1,4 @@
-package com.emperador.radio2
+package com.emperador.radio2.core
 
 import android.content.Context
 import android.content.Intent
@@ -144,10 +144,13 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
         return config.getBoolean("portada_redondeada")
     }
 
-    fun getPrimaryColor(): Int? {
+    fun getPrimaryColor(): Int {
         return Color.parseColor(radio.getString("color"))
     }
 
+    fun getAds(): JSONArray? {
+        return radio.getJSONArray("ads")
+    }
 }
 
 fun TextView.setDrawableColor(color: Int) {

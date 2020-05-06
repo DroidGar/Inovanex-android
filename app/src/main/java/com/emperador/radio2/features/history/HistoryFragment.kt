@@ -1,10 +1,13 @@
-package com.emperador.radio2
+package com.emperador.radio2.features.history
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.emperador.radio2.R
+import com.emperador.radio2.core.Utilities
+import com.emperador.radio2.features.menu.onClose
 import kotlinx.android.synthetic.main.frag_menu_history.view.*
 
 

@@ -1,20 +1,18 @@
-package com.emperador.radio2.programation
+package com.emperador.radio2.features.programation
 
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.emperador.radio2.R
-import com.emperador.radio2.Utilities
-import com.emperador.radio2.onClose
-import com.emperador.radio2.programation.models.Program
-import com.emperador.radio2.programation.models.ProgramDay
-import com.emperador.radio2.programation.repositories.ProgramDayRepository
+import com.emperador.radio2.core.Utilities
+import com.emperador.radio2.features.menu.onClose
+import com.emperador.radio2.features.programation.models.Program
+import com.emperador.radio2.features.programation.models.ProgramDay
+import com.emperador.radio2.features.programation.repositories.ProgramDayRepository
 import kotlinx.android.synthetic.main.frag_menu_programation.view.*
-import org.json.JSONObject
 
 
 class ProgramationFragment : Fragment(), OnProgramationListener {

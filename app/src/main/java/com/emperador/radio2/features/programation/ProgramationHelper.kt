@@ -1,9 +1,9 @@
-package com.emperador.radio2.programation
+package com.emperador.radio2.features.programation
 
 import android.content.Context
-import com.emperador.radio2.programation.models.Program
-import com.emperador.radio2.programation.models.ProgramDay
-import com.emperador.radio2.programation.repositories.ProgramDayRepository
+import com.emperador.radio2.features.programation.models.Program
+import com.emperador.radio2.features.programation.models.ProgramDay
+import com.emperador.radio2.features.programation.repositories.ProgramDayRepository
 import java.text.SimpleDateFormat
 import java.util.*
 

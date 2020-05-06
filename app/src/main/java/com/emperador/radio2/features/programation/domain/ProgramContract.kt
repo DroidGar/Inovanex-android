@@ -1,4 +1,4 @@
-package com.emperador.radio2.programation.domain
+package com.emperador.radio2.features.programation.domain
 
 abstract class ProgramContract {
 

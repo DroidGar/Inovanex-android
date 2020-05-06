@@ -1,6 +1,6 @@
-package com.emperador.radio2.programation.models
+package com.emperador.radio2.features.programation.models
 
-import com.emperador.radio2.programation.domain.ProgramDayContract
+import com.emperador.radio2.features.programation.domain.ProgramDayContract
 import org.json.JSONObject
 
 class ProgramDay : ProgramDayContract() {

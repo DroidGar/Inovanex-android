@@ -1,13 +1,13 @@
-package com.emperador.radio2.programation
+package com.emperador.radio2.features.programation
 
 import android.annotation.SuppressLint
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import com.bumptech.glide.Glide
 import com.emperador.radio2.R
-import com.emperador.radio2.Utilities
-import com.emperador.radio2.openLink
-import com.emperador.radio2.programation.models.Program
+import com.emperador.radio2.core.Utilities
+import com.emperador.radio2.core.openLink
+import com.emperador.radio2.features.programation.models.Program
 import kotlinx.android.synthetic.main.activity_program_detail.*
 import org.json.JSONObject
 

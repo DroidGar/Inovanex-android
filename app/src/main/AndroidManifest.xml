@@ -37,7 +37,7 @@
             tools:ignore="LockedOrientationActivity">
 
         </activity>
-        <activity android:name=".programation.ProgramDetail" />
+        <activity android:name="com.emperador.radio2.features.programation.ProgramDetail" />
     </application>
 
 </manifest>

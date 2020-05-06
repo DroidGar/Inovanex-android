@@ -1,4 +1,4 @@
-package com.emperador.radio2.programation
+package com.emperador.radio2.features.programation
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -10,8 +10,8 @@ import android.view.ViewGroup
 import android.widget.BaseExpandableListAdapter
 import android.widget.ExpandableListView
 import com.emperador.radio2.R
-import com.emperador.radio2.programation.models.Program
-import com.emperador.radio2.programation.models.ProgramDay
+import com.emperador.radio2.features.programation.models.Program
+import com.emperador.radio2.features.programation.models.ProgramDay
 import kotlinx.android.synthetic.main.row_program.view.*
 import kotlinx.android.synthetic.main.row_title.view.*
 

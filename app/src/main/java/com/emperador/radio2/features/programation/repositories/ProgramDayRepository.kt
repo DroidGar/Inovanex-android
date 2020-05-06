@@ -1,8 +1,8 @@
-package com.emperador.radio2.programation.repositories
+package com.emperador.radio2.features.programation.repositories
 
 import android.content.SharedPreferences
-import com.emperador.radio2.programation.models.Program
-import com.emperador.radio2.programation.models.ProgramDay
+import com.emperador.radio2.features.programation.models.Program
+import com.emperador.radio2.features.programation.models.ProgramDay
 import org.json.JSONObject
 import java.lang.Error
 

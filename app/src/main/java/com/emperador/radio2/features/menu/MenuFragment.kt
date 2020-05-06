@@ -1,14 +1,16 @@
-package com.emperador.radio2
+package com.emperador.radio2.features.menu
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.GONE
 import android.view.ViewGroup
 import com.bumptech.glide.Glide
+import com.emperador.radio2.R
+import com.emperador.radio2.core.Utilities
+import com.emperador.radio2.core.setDrawableColor
 import kotlinx.android.synthetic.main.frag_menu.view.*
 import org.json.JSONObject
 
