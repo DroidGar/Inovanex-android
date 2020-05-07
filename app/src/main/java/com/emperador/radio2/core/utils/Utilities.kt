@@ -2,6 +2,7 @@ package com.emperador.radio2.core.utils
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.PorterDuff
@@ -28,11 +29,12 @@ enum class Default {
 
 class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
 
-    var config: JSONObject
-    var radio: JSONObject
+    val config: JSONObject
+    val radio: JSONObject
+    val prefs: SharedPreferences
 
     init {
-        val prefs = context.getSharedPreferences("preferences_emperador", 0)
+        prefs = context.getSharedPreferences("preferences_emperador", 0)
         val confString = prefs.getString("configuration", "")
         config = JSONObject(confString!!)
         radio = config.getJSONObject("radio")
@@ -151,6 +153,17 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
     fun getAds(): JSONArray? {
         return radio.getJSONArray("ads")
     }
+
+    fun getVideoQualities() : JSONArray {
+        return radio.getJSONArray("video")
+    }
+    fun getSelectedVideoQuality(): Int {
+        return prefs.getInt("video-quality-selected",0)
+    }
+
+    fun setSelectedVideoQuality(index: Int) {
+        prefs.edit().putInt("video-quality-selected", index).apply()
+    }
 }
 
 fun TextView.setDrawableColor(color: Int) {
@@ -158,6 +171,7 @@ fun TextView.setDrawableColor(color: Int) {
         it.colorFilter = PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN)
     }
 }
+
 fun Context.openLink(link: String) {
     if (link.isEmpty()) return
     if (link.isBlank()) return

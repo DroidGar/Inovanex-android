@@ -1,5 +1,6 @@
 package com.emperador.radio2
 
+import android.app.Notification
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Intent
@@ -33,16 +34,18 @@ import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.transition.DrawableCrossFadeTransition
 import com.bumptech.glide.request.transition.Transition
 import com.bumptech.glide.request.transition.TransitionFactory
-import com.emperador.inovanex.features.ads.AdsHandler
 import com.emperador.inovanex.features.ads.OnAdsListener
 import com.emperador.radio2.core.utils.Default
 import com.emperador.radio2.core.utils.Utilities
 import com.emperador.radio2.features.ads.AdFragment
 import com.emperador.radio2.features.ads.PublicityFragment
+import com.emperador.radio2.features.auth.Login
+import com.emperador.radio2.features.config.ConfigActivity
 import com.emperador.radio2.features.history.HistoryFragment
 import com.emperador.radio2.features.menu.MenuFragment
 import com.emperador.radio2.features.programation.ProgramationFragment
 import com.emperador.radio2.features.trivia.TriviaActivity
+import com.facebook.login.LoginManager
 import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.Player
@@ -52,6 +55,7 @@ import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
 import com.google.android.exoplayer2.metadata.MetadataOutput
 import com.google.android.exoplayer2.metadata.icy.IcyInfo
+import com.google.android.exoplayer2.offline.DownloadService.startForeground
 import com.google.android.exoplayer2.source.ConcatenatingMediaSource
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
@@ -71,6 +75,7 @@ import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.SessionManager
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.images.WebImage
+import com.google.firebase.auth.FirebaseAuth
 import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar.*
@@ -95,6 +100,8 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
     //https://cdn2.instream.audio/:8007/stream
 
 
+    private val CONFIG_CODE: Int = 23794
+    private val LOGIN_CODE: Int = 23662
     private var playerMinimized: Boolean = false
     private var mediaCastItems = mutableListOf<MediaQueueItem>()
     private var mediaCastInfo = mutableListOf<MediaInfo>()
@@ -160,7 +167,7 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
 
         buildNotification()
 
-        player.addListener(errorListener)
+        player.addListener(playerEventListener)
         player.addMetadataOutput(metadataOutput)
         player.prepare(mediaSources)
         player.playWhenReady = true
@@ -180,19 +187,6 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
             switchSourceType()
         }
 
-//        quality.setOnItemClickListener { _, _, position, _ ->
-//            var index = position
-//
-//            if (currentSourceType == SourceType.VIDEO) {
-//                index = position + mediaSourcesAudio.size
-//                onVideoQualityChange(index)
-//            } else if (currentSourceType == SourceType.AUDIO) {
-//                onAudioQualityChange(index)
-//            }
-//
-//            selectedMediaSourceIndex = index
-//
-//        }
 
         CastButtonFactory.setUpMediaRouteButton(applicationContext, mediaButton)
         mCastContext = CastContext.getSharedInstance(this)
@@ -200,7 +194,7 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
         castPlayer = CastPlayer(mCastContext)
         castPlayer.setSessionAvailabilityListener(this)
 
-        lastSelectedVideoQuality = mediaSourcesAudio.size
+        lastSelectedVideoQuality = util.getSelectedVideoQuality() + mediaSourcesAudio.size
 
         switchSourceType()
 
@@ -208,15 +202,18 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
             onMenuItemSelected(10)
         }
 
-        AdsHandler(this)
+//        AdsHandler(this)
     }
-
 
     private fun onVideoQualityChange(index: Int) {
+
+        if (lastSelectedVideoQuality == index) return
+
         lastSelectedVideoQuality = index
+        selectedMediaSourceIndex = index
+        util.setSelectedVideoQuality(lastSelectedVideoQuality - mediaSourcesAudio.size)
         switchSourceType()
     }
-
 
     private fun onAudioQualityChange(index: Int) {
         lastSelectedAudioQuality = index
@@ -317,7 +314,7 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
         notificationManager = PlayerNotificationManager
             .createWithNotificationChannel(
                 this, "channel", R.string.app_name, R.string.app_name, 123,
-                mediaDescriptionAdapter
+                mediaDescriptionAdapter, notificationListener
             )
 
         // omit skip previous and next actions
@@ -326,10 +323,30 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
         notificationManager.setFastForwardIncrementMs(0)
         // omit rewind action by setting the increment to zero
         notificationManager.setRewindIncrementMs(0)
+        notificationManager.setUseStopAction(true)
 
         notificationManager.setMediaSessionToken(mMediaSessionCompat.sessionToken)
 
         notificationManager.setPlayer(player)
+    }
+
+    private val notificationListener = object : PlayerNotificationManager.NotificationListener {
+
+        override fun onNotificationCancelled(notificationId: Int, dismissedByUser: Boolean) {
+            Log.e("tag", "onNotificationCancelled by user $dismissedByUser")
+            finish()
+        }
+
+        override fun onNotificationStarted(notificationId: Int, notification: Notification) {
+        }
+
+        override fun onNotificationPosted(
+            notificationId: Int,
+            notification: Notification,
+            ongoing: Boolean
+        ) {
+
+        }
     }
 
     private fun initMediaSession() {
@@ -465,6 +482,10 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
 
         }
 
+        Log.e("tag", "selected video index $lastSelectedVideoQuality")
+        Log.e("tag", "selected audio index $lastSelectedAudioQuality")
+
+
         updateHomeScreen()
 
     }
@@ -558,7 +579,7 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
     }
 
 
-    private val errorListener = object : Player.EventListener {
+    private val playerEventListener = object : Player.EventListener {
         override fun onPlayerError(error: ExoPlaybackException) {
             Log.e("TAG", error.message.toString())
 
@@ -568,13 +589,14 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
                     if (selectedMediaSourceIndex > 0) {
                         selectedMediaSourceIndex -= 1
                         lastSelectedVideoQuality = selectedMediaSourceIndex
+                        util.setSelectedVideoQuality(lastSelectedVideoQuality - mediaSourcesAudio.size)
                     }
                     Toast.makeText(
                         this@MainActivity,
                         "Se bajo la calidad automaticamente ya que tu conexión esta teniendo problemas",
                         Toast.LENGTH_LONG
                     ).show()
-                    player.seekTo(selectedMediaSourceIndex, C.TIME_UNSET)
+                    switchSourceType()
                 }
             }
 
@@ -583,6 +605,10 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
         override fun onPositionDiscontinuity(reason: Int) {
 //            Log.e("TAG", player.currentTag.toString())
 
+        }
+
+        override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
+            Log.e("state", "onPlayerStateChanged -> $playbackState")
         }
     }
 
@@ -658,21 +684,41 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
         val ft = supportFragmentManager.beginTransaction()
         ft.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
 
-        Log.e("tag", position.toString())
-
         when (position) {
             0 -> ft.replace(R.id.container, ProgramationFragment(), "pro")
             1 -> ft.replace(R.id.container, HistoryFragment(), "his")
+            2 -> ft.replace(R.id.container, PublicityFragment(), "pub")
+            3 -> {
+                logout()
+                return
+            }
+            4 -> {
+                startActivityForResult(Intent(this, ConfigActivity::class.java), CONFIG_CODE)
+                return
+            }
             5 -> {
                 startActivity(Intent(this, TriviaActivity::class.java))
                 return
             }
-            2 -> ft.replace(R.id.container, PublicityFragment(), "pub")
+            6 -> {
+                login()
+            }
+
             10 -> ft.replace(R.id.container, MenuFragment(), "menu")
         }
 
         ft.addToBackStack("pro")
         ft.commitAllowingStateLoss()
+    }
+
+    private fun logout() {
+        LoginManager.getInstance().logOut()
+        FirebaseAuth.getInstance().signOut()
+        Toast.makeText(this, "Saliste correctamente", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun login() {
+        startActivityForResult(Intent(this, Login::class.java), LOGIN_CODE)
     }
 
     override fun onAdsShow(ads: JSONObject) {
@@ -686,6 +732,33 @@ class MainActivity : AppCompatActivity(), Utilities.ArtworkListener,
         fragment.arguments = bundle
         ft.replace(R.id.container, fragment, "ads")
         ft.commitAllowingStateLoss()
+
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+
+        if (requestCode == LOGIN_CODE) {
+            if (resultCode == RESULT_OK) {
+                Toast.makeText(
+                    this, "Hola ${FirebaseAuth.getInstance().currentUser?.displayName}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                Toast.makeText(this, "No se logro ingresar, reintente", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        if (requestCode == CONFIG_CODE) {
+            if (resultCode == RESULT_OK) {
+
+                if (currentSourceType == SourceType.VIDEO) {
+                    val index = util.getSelectedVideoQuality() + mediaSourcesAudio.size
+                    onVideoQualityChange(index)
+                }
+            }
+        }
 
     }
 }

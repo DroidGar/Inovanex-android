@@ -75,7 +75,7 @@ class AdFragment : Fragment() {
 
         view.dismiss.setOnClickListener {
 
-            activity!!.supportFragmentManager.beginTransaction()
+            activity?.supportFragmentManager!!.beginTransaction()
                 .remove(this).commitAllowingStateLoss()
         }
 

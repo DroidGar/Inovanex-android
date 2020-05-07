@@ -42,6 +42,7 @@
     <string name="incorrecto">Incorrecto!</string>
     <string name="siguiente_pregunta">Siguiente pregunta</string>
     <string name="comenta">comenta</string>
+    <string name="login">Ingresar</string>
 
 
 </resources>

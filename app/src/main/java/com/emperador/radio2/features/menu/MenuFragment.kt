@@ -1,16 +1,19 @@
 package com.emperador.radio2.features.menu
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.GONE
+import android.view.View.VISIBLE
 import android.view.ViewGroup
 import com.bumptech.glide.Glide
 import com.emperador.radio2.R
 import com.emperador.radio2.core.utils.Utilities
 import com.emperador.radio2.core.utils.setDrawableColor
+import com.emperador.radio2.features.auth.Login
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.android.synthetic.main.frag_menu.view.*
 
@@ -29,12 +32,26 @@ class MenuFragment : Fragment() {
         view.pro.setOnClickListener { onItemSelected(0) }
         view.his.setOnClickListener { onItemSelected(1) }
         view.pub.setOnClickListener { onItemSelected(2) }
-        view.acc.setOnClickListener { onItemSelected(3) }
+
+        view.acc.setOnClickListener {
+
+            if (FirebaseAuth.getInstance().currentUser == null) {
+                onItemSelected(6)
+            } else {
+                onItemSelected(3)
+            }
+        }
+
+
         view.options.setOnClickListener { onItemSelected(4) }
         view.trivia.setOnClickListener { onItemSelected(5) }
 
+        view.acc.visibility = VISIBLE
+
         if (FirebaseAuth.getInstance().currentUser == null) {
-            view.acc.visibility = GONE
+            view.acc.setText(R.string.login)
+        } else {
+            view.acc.setText(R.string.logout)
         }
 
         util = Utilities(context!!, null)

@@ -62,6 +62,7 @@
         <activity android:name=".features.programation.ProgramDetail" />
         <activity android:name=".features.trivia.TriviaActivity" />
         <activity android:name=".features.auth.Login" />
+        <activity android:name=".features.config.ConfigActivity" />
 
 
         <service
