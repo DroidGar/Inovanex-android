@@ -17,7 +17,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <activity android:name=".SplashActivity"
+        <activity
+            android:name=".SplashActivity"
             android:noHistory="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -64,6 +65,9 @@
         <activity android:name=".features.auth.Login" />
         <activity android:name=".features.config.ConfigActivity" />
 
+        <service
+            android:name=".ExoplayerService"
+            android:foregroundServiceType="mediaPlayback"/>
 
         <service
             android:name=".features.push.PushService"

@@ -17,6 +17,9 @@ import com.android.volley.Response
 import com.android.volley.toolbox.ImageRequest
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.Volley
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import kotlinx.android.synthetic.main.scene1.*
 import org.json.JSONArray
 import org.json.JSONObject
 import java.lang.Exception
@@ -83,6 +86,8 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
     /** ARTWORK */
     fun getArtwork(song: String, artist: String) {
 
+
+
         val host = "https://spotify.instream.audio"
 
         val query = "$song $artist"
@@ -126,7 +131,7 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
 
     }
 
-    private fun downloadImage(path: String) {
+    public fun downloadImage(path: String) {
         val queue = Volley.newRequestQueue(context)
 
         val stringRequest = ImageRequest(path,
@@ -163,6 +168,14 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
 
     fun setSelectedVideoQuality(index: Int) {
         prefs.edit().putInt("video-quality-selected", index).apply()
+    }
+
+    fun isPortadaFija(): Boolean {
+        return config.getBoolean("portada_fija")
+    }
+
+    fun showProgramImages(): Boolean {
+        return config.getBoolean("show_programs_image")
     }
 }
 

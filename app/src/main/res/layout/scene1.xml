@@ -23,22 +23,52 @@
             android:elevation="8dp"
             app:cardCornerRadius="10dp">
 
-            <ImageView
-                android:id="@+id/artwork"
-                android:layout_width="250dp"
-                android:layout_height="250dp"
-                android:background="#333333"
-                android:scaleType="centerCrop" />
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
 
+                <ImageView
+                    android:id="@+id/artwork"
+                    android:layout_width="250dp"
+                    android:layout_height="250dp"
+                    android:background="#333333"
+                    android:scaleType="centerCrop" />
+
+                <FrameLayout
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:layout_gravity="end|bottom"
+                    android:layout_margin="5dp"
+                    android:elevation="4dp">
+
+                    <ProgressBar
+                        android:id="@+id/bufferProgress"
+                        style="?android:attr/progressBarStyleLarge"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:indeterminate="true"
+                        android:visibility="gone" />
+
+                    <ImageButton
+                        android:id="@+id/playPauseButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="#00446699"
+                        android:elevation="2dp"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/ic_play" />
+                </FrameLayout>
+
+            </FrameLayout>
         </androidx.cardview.widget.CardView>
 
         <LinearLayout
             android:id="@+id/metadataText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:layout_marginStart="50dp"
             android:layout_marginEnd="50dp"
-            android:layout_marginStart="50dp">
+            android:orientation="vertical">
 
             <LinearLayout
                 android:layout_width="wrap_content"
