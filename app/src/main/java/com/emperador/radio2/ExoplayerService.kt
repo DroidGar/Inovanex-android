@@ -282,7 +282,6 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
 
     }
 
-
     private fun initMediaSources() {
 
         val concatenatedSource = ConcatenatingMediaSource()
