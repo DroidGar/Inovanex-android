@@ -1,40 +1,53 @@
 package com.emperador.radio2
 
+import android.app.Activity
 import android.content.*
 import android.content.res.Configuration
 import android.graphics.Bitmap
-import android.graphics.Point
+import android.graphics.Color
 import android.graphics.drawable.Drawable
-import android.os.Bundle
-import android.os.IBinder
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.media.MediaRecorder
+import android.net.Uri
+import android.os.*
+import android.provider.MediaStore
 import android.transition.Scene
-import android.transition.Slide
-import android.transition.TransitionManager
+import android.util.Base64
+import android.util.DisplayMetrics
 import android.util.Log
-import android.view.Display
 import android.view.Gravity
+import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
+import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.SimpleAdapter
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import android.widget.Toast.LENGTH_SHORT
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.MultiTransformation
-import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.transition.DrawableCrossFadeTransition
 import com.bumptech.glide.request.transition.Transition
 import com.bumptech.glide.request.transition.TransitionFactory
+import com.emperador.button.AudioRecordView
 import com.emperador.inovanex.features.ads.OnAdsListener
 import com.emperador.radio2.core.utils.Default
+import com.emperador.radio2.core.utils.PermissionHandler
+import com.emperador.radio2.core.utils.RealPathUtil
 import com.emperador.radio2.core.utils.Utilities
 import com.emperador.radio2.features.ads.AdFragment
 import com.emperador.radio2.features.ads.PublicityFragment
 import com.emperador.radio2.features.auth.Login
+import com.emperador.radio2.features.chat.ChatAdapter
+import com.emperador.radio2.features.chat.OnSocketListener
+import com.emperador.radio2.features.chat.SocketController
 import com.emperador.radio2.features.config.ConfigActivity
 import com.emperador.radio2.features.history.HistoryFragment
 import com.emperador.radio2.features.menu.MenuFragment
@@ -45,7 +58,6 @@ import com.emperador.radio2.features.programation.models.Program
 import com.emperador.radio2.features.programation.models.ProgramDay
 import com.emperador.radio2.features.trivia.TriviaActivity
 import com.facebook.login.LoginManager
-import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.ext.cast.CastPlayer
@@ -53,14 +65,19 @@ import com.google.android.exoplayer2.metadata.MetadataOutput
 import com.google.android.exoplayer2.metadata.icy.IcyInfo
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.gms.cast.framework.CastButtonFactory
-import com.google.android.gms.cast.framework.CastContext
-import com.google.android.gms.cast.framework.SessionManager
 import com.google.firebase.auth.FirebaseAuth
+import com.sothree.slidinguppanel.SlidingUpPanelLayout
 import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar.*
 import kotlinx.android.synthetic.main.scene1.*
+import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.*
+
 
 enum class SourceType {
     AUDIO, VIDEO
@@ -70,9 +87,12 @@ enum class PlayerType {
     LOCAL, CAST
 }
 
-class MainActivity : AppCompatActivity(), MenuFragment.OnMenuListener, OnAdsListener,
-    Utilities.ArtworkListener, OnProgramationListener {
+class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsListener,
+    Utilities.ArtworkListener, OnProgramationListener, OnSocketListener,
+    AudioManager.OnAudioFocusChangeListener {
 
+    private lateinit var chatAdapter: ChatAdapter
+    private lateinit var socket: SocketController
     private var currentProgram: Program? = null
     private lateinit var programmHelper: ProgramationHelper
 
@@ -80,7 +100,7 @@ class MainActivity : AppCompatActivity(), MenuFragment.OnMenuListener, OnAdsList
     private var pauseImage: Drawable? = null
 
     private val CONFIG_CODE: Int = 23794
-    private val LOGIN_CODE: Int = 23662
+    val LOGIN_CODE: Int = 23662
 
     private lateinit var util: Utilities
 
@@ -99,11 +119,23 @@ class MainActivity : AppCompatActivity(), MenuFragment.OnMenuListener, OnAdsList
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+
+
         util = Utilities(this, this)
 
         scene1 = Scene.getSceneForLayout(sceneRoot, R.layout.scene1, this)
 
         scene1.enter()
+
+
+        am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                .setAcceptsDelayedFocusGain(true)
+                .setOnAudioFocusChangeListener(this)
+                .build()
+        }
 
         changeMediaSource.setOnClickListener {
             (it as TextView)
@@ -120,7 +152,9 @@ class MainActivity : AppCompatActivity(), MenuFragment.OnMenuListener, OnAdsList
             updateHomeScreen()
         }
 
-
+        loginButton.setOnClickListener {
+            onMenuItemSelected(6)
+        }
 
 
         playPauseButton.setOnClickListener {
@@ -129,11 +163,13 @@ class MainActivity : AppCompatActivity(), MenuFragment.OnMenuListener, OnAdsList
 
         }
 
+
         CastButtonFactory.setUpMediaRouteButton(applicationContext, mediaButton)
 
 
 
         menu.setOnClickListener {
+            Log.e("atag", "menu")
             onMenuItemSelected(10)
         }
 
@@ -145,13 +181,86 @@ class MainActivity : AppCompatActivity(), MenuFragment.OnMenuListener, OnAdsList
         playImage = ContextCompat.getDrawable(this@MainActivity, R.drawable.ic_play)
         pauseImage = ContextCompat.getDrawable(this@MainActivity, R.drawable.ic_pause)
 
+        setUpWspButton()
+
+        initChat()
+
+        panel.addPanelSlideListener(panelStateListener)
+
+        screenSize()
+
+        panel.panelHeight = height / 3
+        setChatHeight(height / 3)
+
+        loginButton.visibility = GONE
+
+        artwork.layoutParams.height = height / 3 - 50
+        artwork.layoutParams.width = height / 3 - 50
+
+    }
+
+    var height: Int = 0
+    var width: Int = 0
+
+
+    private val onCurrentPlayerTypeListener = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            currentPlayerType = if(intent!!.getBooleanExtra("source", false))
+                PlayerType.LOCAL
+            else PlayerType.CAST
+
+            updateHomeScreen()
+
+        }
+
+    }
+
+    private fun setChatHeight(height: Int) {
+        val params: ViewGroup.LayoutParams = chatView.layoutParams
+        params.height = height
+        chatView.layoutParams = params
+
+        if (chatAdapter.itemCount > 0) {
+            val handler = Handler()
+            handler.postDelayed({
+                rv.smoothScrollToPosition(chatAdapter.itemCount - 1)
+            }, 100)
+            rv.smoothScrollToPosition(chatAdapter.itemCount - 1)
+        }
+    }
+
+    private fun screenSize() {
+        val displayMetrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(displayMetrics)
+        height = displayMetrics.heightPixels
+        width = displayMetrics.widthPixels
+    }
+
+    private fun setUpWspButton() {
+        recordingView.messageView.setHint(R.string.comenta)
+        recordingView.setButtonRecordColor(util.getPrimaryColor())
+
     }
 
     private val playerEventListener = object : Player.EventListener {
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-            Log.e("state", playbackState.toString())
-            if (playbackState == Player.STATE_BUFFERING) {
+            when (playbackState) {
+                Player.STATE_BUFFERING -> {
+                    Log.e("state", "STATE_BUFFERING")
 
+                }
+                Player.STATE_IDLE -> {
+                    Log.e("state", "STATE_IDLE")
+
+                }
+                Player.STATE_READY -> {
+                    Log.e("state", "STATE_READY")
+
+                }
+                else -> {
+                    Log.e("state", playbackState.toString())
+
+                }
             }
             playPauseButton.setImageDrawable(if (player.isPlaying) pauseImage else playImage)
         }
@@ -177,17 +286,57 @@ class MainActivity : AppCompatActivity(), MenuFragment.OnMenuListener, OnAdsList
     override fun onStart() {
         super.onStart()
         bindService()
+        socket.connect()
+
+        registerReceiver(onCurrentPlayerTypeListener, IntentFilter(ExoplayerService.SWITCH_SOURCE))
     }
 
-    override fun onStop() {
-        super.onStop()
+    var canSendChat = true
+    private fun waitChat() {
+        canSendChat = false
+        val handler = Handler()
+        handler.postDelayed({
+            canSendChat = true
+        }, 5000)
     }
 
     override fun onDestroy() {
         unbindService()
+        socket.disconnect()
+
+        unregisterReceiver(onCurrentPlayerTypeListener)
+
         super.onDestroy()
     }
 
+
+    private val panelStateListener = object : SlidingUpPanelLayout.PanelSlideListener {
+        override fun onPanelSlide(p: View?, slideOffset: Float) {
+
+        }
+
+        override fun onPanelStateChanged(
+            panel: View?,
+            previousState: SlidingUpPanelLayout.PanelState?,
+            newState: SlidingUpPanelLayout.PanelState?
+        ) {
+
+            if (newState == SlidingUpPanelLayout.PanelState.EXPANDED) {
+                setChatHeight(height - 130)
+
+
+            }
+
+            if (newState == SlidingUpPanelLayout.PanelState.COLLAPSED) {
+                setChatHeight(height / 3)
+
+
+            }
+
+
+        }
+
+    }
 
     private val onServiceConnectionListener = object : ServiceConnection {
 
@@ -362,6 +511,7 @@ class MainActivity : AppCompatActivity(), MenuFragment.OnMenuListener, OnAdsList
     private fun logout() {
         LoginManager.getInstance().logOut()
         FirebaseAuth.getInstance().signOut()
+        //  (supportFragmentManager.findFragmentById(R.id.fragmentChat) as ChatFragment).logout()
         Toast.makeText(this, "Saliste correctamente", Toast.LENGTH_SHORT).show()
     }
 
@@ -388,13 +538,19 @@ class MainActivity : AppCompatActivity(), MenuFragment.OnMenuListener, OnAdsList
 
         if (requestCode == LOGIN_CODE) {
             if (resultCode == RESULT_OK) {
-                Toast.makeText(
-                    this, "Hola ${FirebaseAuth.getInstance().currentUser?.displayName}",
-                    Toast.LENGTH_SHORT
-                ).show()
+                if (FirebaseAuth.getInstance().currentUser != null) {
+                    loginButton.visibility = VISIBLE
+                    recordingView.visibility = GONE
+
+                } else {
+                    loginButton.visibility = GONE
+                    recordingView.visibility = VISIBLE
+                }
             } else {
                 Toast.makeText(this, "No se logro ingresar, reintente", Toast.LENGTH_SHORT).show()
             }
+
+
         }
 
         if (requestCode == CONFIG_CODE) {
@@ -411,6 +567,139 @@ class MainActivity : AppCompatActivity(), MenuFragment.OnMenuListener, OnAdsList
             }
         }
 
+        if (requestCode == 303 && resultCode == Activity.RESULT_OK) {
+            try {
+                val selectedImage = data!!.data
+
+                val pth = RealPathUtil.getRealPathFromURI_API11to18(this, selectedImage)
+                sendImage(pth)
+
+            } catch (e: java.lang.Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        if (requestCode == REQUEST_TAKE_PHOTO && resultCode == Activity.RESULT_OK) {
+            sendImage(currentPhotoPath)
+        }
+
+    }
+
+    private var fileName = ""
+    private var startRecordTime = 0L
+
+    private lateinit var am: AudioManager
+    private lateinit var audioFocusRequest: AudioFocusRequest
+    private var recorder: MediaRecorder? = null
+
+    private fun startRecording() {
+
+        if (!canRecordAudio) {
+            requestPermissions()
+            return
+        }
+
+        val res = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            am.requestAudioFocus(audioFocusRequest)
+        } else {
+            TODO("VERSION.SDK_INT < O")
+        }
+
+
+        fileName = "${externalCacheDir!!.absolutePath}/audiorecordtest.3gp"
+        File(fileName)
+
+        recorder = MediaRecorder().apply {
+            setAudioSource(MediaRecorder.AudioSource.MIC)
+            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+            setOutputFile(fileName)
+            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+
+            try {
+                prepare()
+            } catch (e: IOException) {
+                Log.e("tag", "prepare() failed")
+            }
+
+            start()
+            startRecordTime = System.nanoTime()
+        }
+
+
+    }
+
+    private fun cancelRecording() {
+
+        val res = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            am.abandonAudioFocusRequest(audioFocusRequest)
+        } else {
+            TODO("VERSION.SDK_INT < O")
+        }
+
+        val elapsedMillis = SystemClock.elapsedRealtime()
+
+        if (elapsedMillis < 500) {
+            Thread.sleep(500)
+        }
+
+        try {
+            recorder?.apply {
+                stop()
+                release()
+            }
+        } catch (e: Exception) {
+        }
+        recorder = null
+    }
+
+
+    private fun sendAudio(path: String) {
+
+        val user = FirebaseAuth.getInstance().currentUser;
+        val data = JSONObject()
+        data.put("type", 2)
+        data.put("name", user?.displayName)
+        data.put("image", user?.photoUrl)
+        data.put("message", path)
+        data.put("local", true)
+        chatAdapter.add(data)
+
+
+        val message = JSONObject()
+        message.put("type", 2)
+        message.put("message", encoder(path))
+        socket.sendFile(message)
+
+        rv.smoothScrollToPosition(chatAdapter.itemCount - 1)
+
+
+    }
+
+
+    private fun sendImage(path: String) {
+
+        val user = FirebaseAuth.getInstance().currentUser;
+
+        val data = JSONObject()
+        data.put("type", 3)
+        data.put("name", user?.displayName)
+        data.put("image", user?.photoUrl)
+        data.put("message", path)
+        data.put("local", true)
+        chatAdapter.add(data)
+
+        val message = JSONObject()
+        message.put("type", 3)
+        message.put("message", encoder(path))
+        socket.sendFile(message)
+
+        rv.smoothScrollToPosition(chatAdapter.itemCount - 1)
+
+    }
+
+    private fun encoder(filePath: String): String {
+        val bytes = File(filePath).readBytes()
+        return Base64.encodeToString(bytes, Base64.DEFAULT)
     }
 
     override fun onArtworkChange(bitmap: Bitmap) {
@@ -420,6 +709,223 @@ class MainActivity : AppCompatActivity(), MenuFragment.OnMenuListener, OnAdsList
 
     override fun onProgramChange(day: ProgramDay?, program: Program?) {
         currentProgram = program
+    }
+
+
+    /**
+     *          SOCKET
+     *
+     * */
+
+    private fun initChat() {
+
+
+        val viewManager = LinearLayoutManager(this).apply {
+            stackFromEnd = false
+            reverseLayout = false
+        }
+
+        chatAdapter = ChatAdapter(JSONArray(), this)
+
+        rv.apply {
+            setHasFixedSize(true)
+            layoutManager = viewManager
+            adapter = chatAdapter
+        }
+
+        recordingView.sendView.setOnClickListener {
+
+            if (!canSendChat) {
+                Toast.makeText(
+                    this,
+                    "Solo puede enviar un mensaje cada 5 segundos",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@setOnClickListener
+            }
+
+            waitChat()
+
+            val ms = recordingView.messageView.text!!.trim()
+            if (ms.length < 2) {
+                Toast.makeText(this, "Minimo 2 caracteres", LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val msg1 = JSONObject()
+            msg1.put("type", 1)
+            msg1.put("message", ms)
+            socket.sendMessage(msg1)
+
+            recordingView.messageView.setText("")
+
+        }
+
+        recordingView.attachmentView.setOnClickListener {
+            if (!canSelectImage || !canTakePicture) {
+                requestPermissions()
+                return@setOnClickListener
+            }
+
+            dialogGetImage()
+        }
+
+        val chatConfig = util.radio.getJSONObject("chat")
+        socket = SocketController(chatConfig, this, this)
+        socket.configure()
+
+        recordingView.recordingListener = object : AudioRecordView.RecordingListener {
+            override fun onRecordingCanceled() {
+                cancelRecording()
+            }
+
+            override fun onRecordingStarted() {
+                startRecording()
+            }
+
+            override fun onRecordingLocked() {
+
+            }
+
+            override fun onRecordingCompleted() {
+
+                if (recordingView.timeElapsed < 2) {
+                    cancelRecording()
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Minimo 2 segundos de audio",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return
+                }
+
+                cancelRecording()
+                sendAudio(fileName)
+            }
+
+        }
+    }
+
+    override fun onNewMessage(json: JSONObject) {
+        chatAdapter.add(json)
+        rv.smoothScrollToPosition(chatAdapter.itemCount - 1)
+    }
+
+
+    override fun onConnecting() {
+    }
+
+    override fun onConnected() {
+        if (FirebaseAuth.getInstance().currentUser == null) {
+            loginButton.visibility = VISIBLE
+            recordingView.visibility = GONE
+        } else {
+            loginButton.visibility = GONE
+            recordingView.visibility = VISIBLE
+        }
+    }
+
+    override fun onDisconnect() {
+    }
+
+    override fun onUnauthorized() {
+    }
+
+    fun dialogGetImage() {
+
+        val items: Array<CharSequence> =
+            arrayOf(
+                getString(R.string.sacar_foto),
+                getString(R.string.elegir_galeria),
+                getString(R.string.cancelar)
+            )
+
+        val title = TextView(this)
+        title.text = getString(R.string.seleccionar_imagen)
+        title.setBackgroundColor(Color.BLACK)
+        title.setPadding(10, 15, 15, 10)
+        title.gravity = Gravity.CENTER
+        title.setTextColor(Color.WHITE)
+        title.textSize = 20f
+
+        val builder = AlertDialog.Builder(this)
+
+
+
+        builder.setCustomTitle(title)
+
+        // builder.setTitle("Add Photo!");
+        val listener = DialogInterface.OnClickListener { dialog, which ->
+
+            when {
+                items[which] == getString(R.string.sacar_foto) -> {
+                    takePhoto()
+                }
+                items[which] == getString(R.string.elegir_galeria) -> {
+                    getImageFromGallery()
+                }
+                else -> {
+
+                }
+            }
+
+        }
+        builder.setItems(items, listener)
+        builder.show()
+    }
+
+    private fun getImageFromGallery() {
+        val intent = Intent(Intent.ACTION_PICK)
+        intent.type = "image/*"
+        startActivityForResult(intent, 303)
+
+    }
+
+    var currentPhotoPath = ""
+    private fun takePhoto() {
+
+        Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
+            // Ensure that there's a camera activity to handle the intent
+            takePictureIntent.resolveActivity(packageManager)?.also {
+                // Create the File where the photo should go
+                val photoFile: File? = try {
+                    createImageFile()
+                } catch (ex: IOException) {
+                    // Error occurred while creating the File
+                    Toast.makeText(this, "No se pudo acceder a la camara", LENGTH_SHORT).show()
+                    return
+                }
+                // Continue only if the File was successfully created
+                photoFile?.also {
+                    val photoURI: Uri = FileProvider.getUriForFile(
+                        this,
+                        "com.emperador.inovanex.fileprovider",
+                        it
+                    )
+                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
+                    startActivityForResult(takePictureIntent, PermissionHandler.REQUEST_TAKE_PHOTO)
+                }
+            }
+        }
+    }
+
+    @Throws(IOException::class)
+    private fun createImageFile(): File {
+        // Create an image file name
+        val timeStamp: String =
+            SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir: File = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
+        return File.createTempFile(
+            "JPEG_${timeStamp}_", /* prefix */
+            ".jpg", /* suffix */
+            storageDir /* directory */
+        ).apply {
+            // Save a file: path for use with ACTION_VIEW intents
+            currentPhotoPath = absolutePath
+        }
+    }
+
+    override fun onAudioFocusChange(focusChange: Int) {
+        TODO("Not yet implemented")
     }
 
 

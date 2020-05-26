@@ -14,6 +14,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
+import android.view.View.GONE
 import android.widget.Toast
 import androidx.media.session.MediaButtonReceiver
 import com.emperador.radio2.core.utils.Default
@@ -99,6 +100,7 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
         const val DESTROY = "destroy"
         const val SWITCH_VIDEO_QUALITY = "quality"
         const val SWITCH_TYPE = "type"
+        const val SWITCH_SOURCE = "source"
 
     }
 
@@ -219,10 +221,14 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
 
     }
 
-
-    override fun onDestroy() {
+    override fun stopService(name: Intent?): Boolean {
         unregisterReceiver(onSwitchType)
         unregisterReceiver(onSwitchVideoQuality)
+        return super.stopService(name)
+    }
+
+    override fun onDestroy() {
+
 
         notificationManager.setPlayer(null)
         player.stop()
@@ -233,8 +239,8 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
     private fun initMediaSession() {
         val mediaButtonReceiver = ComponentName(applicationContext, MediaButtonReceiver::class.java)
         mMediaSessionCompat = MediaSessionCompat(
-                applicationContext, "MyMediasession", mediaButtonReceiver, null
-            )
+            applicationContext, "MyMediasession", mediaButtonReceiver, null
+        )
         mMediaSessionCompat.isActive = true
 
 
@@ -266,11 +272,11 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
             }
 
             override fun onSkipToNext(player: Player?, controlDispatcher: ControlDispatcher?) {
-                Log.e("tag","seek next")
+                Log.e("tag", "seek next")
             }
 
             override fun onSkipToPrevious(player: Player?, controlDispatcher: ControlDispatcher?) {
-                Log.e("tag","seek previous")
+                Log.e("tag", "seek previous")
             }
 
         }
@@ -465,8 +471,8 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
 
         if (currentPlayerType == PlayerType.LOCAL) {
 
+
             // Volver a mostar la notificacion si se saco por el cast
-            notificationManager.setPlayer(player)
 
             if (currentSourceType == SourceType.VIDEO) {
                 player.seekTo(lastSelectedVideoQuality, C.TIME_UNSET)
@@ -476,11 +482,23 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
 
             player.playWhenReady = true
 
+            val intent = Intent().apply {
+                action = SWITCH_SOURCE
+                putExtra("source", true)
+            }
+            sendBroadcast(intent)
 
         } else if (currentPlayerType == PlayerType.CAST) {
+
+            val intent = Intent().apply {
+                action = SWITCH_SOURCE
+                putExtra("source", false)
+            }
+            sendBroadcast(intent)
+
             player.playWhenReady = false
             // ocultar notificacion del player para mostrar la del cast
-            notificationManager.setPlayer(null)
+
 
             if (currentSourceType == SourceType.VIDEO) {
                 remoteMediaClient.load(mediaCastInfo[lastSelectedAudioQuality + mediaSourcesVideo.size])

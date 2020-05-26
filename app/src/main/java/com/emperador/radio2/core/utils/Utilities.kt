@@ -17,9 +17,7 @@ import com.android.volley.Response
 import com.android.volley.toolbox.ImageRequest
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.Volley
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import kotlinx.android.synthetic.main.scene1.*
+import com.emperador.radio2.BuildConfig
 import org.json.JSONArray
 import org.json.JSONObject
 import java.lang.Exception
@@ -92,7 +90,7 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
 
         val query = "$song $artist"
 
-        val path = "$host/api/function/c/track.search?limit=1&text=$query"
+        val path = "$host/inovanex.com/api/v1/cover/get?id=${BuildConfig.id}"
         Log.i("EmperadorMusicservice", "getArtwork -> $path")
         val queue = Volley.newRequestQueue(context)
         // Request a string response from the provided URL.

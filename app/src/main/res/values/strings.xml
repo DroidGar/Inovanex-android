@@ -14,7 +14,6 @@
     <string name="trivia">Trivias</string>
     <string name="sponsors">Sponsors</string>
     <string name="advnce_adjustments">advansed adjustment</string>
-    <string name="logout">IDENTIFY AND COMMENT</string>
     <string name="en_vivo">LIVE</string>
     <string name="reproduciendo">Playing now</string>
     <string name="identify">Identify and comment</string>
@@ -45,8 +44,8 @@
     <string name="app_id" translatable="false">185BDB41</string>
     <string name="media_route_menu_title" translatable="false">title</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
-    <string name="login">Login</string>
+    <string name="login">IDENTIFY AND COMMENT</string>
+    <string name="logout">LOG OUT</string>
+
 
 </resources>
