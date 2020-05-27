@@ -17,6 +17,7 @@ import android.util.Log
 import android.view.View.GONE
 import android.widget.Toast
 import androidx.media.session.MediaButtonReceiver
+import androidx.mediarouter.media.MediaItemMetadata.KEY_TITLE
 import com.emperador.radio2.core.utils.Default
 import com.emperador.radio2.core.utils.Utilities
 import com.emperador.radio2.features.programation.OnProgramationListener
@@ -25,6 +26,7 @@ import com.emperador.radio2.features.programation.models.Program
 import com.emperador.radio2.features.programation.models.ProgramDay
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.ext.cast.CastPlayer
+import com.google.android.exoplayer2.ext.cast.SessionAvailabilityListener
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
 import com.google.android.exoplayer2.metadata.MetadataOutput
@@ -47,9 +49,11 @@ import com.google.android.gms.cast.framework.SessionManager
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.images.WebImage
 
-class ExoplayerService : Service(), Utilities.ArtworkListener,
-    CastPlayer.SessionAvailabilityListener, OnProgramationListener {
+@Suppress("DEPRECATION")
+class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationListener,
+    SessionAvailabilityListener {
 
+    private lateinit var mediaSessionConnector: MediaSessionConnector
     private lateinit var player: SimpleExoPlayer
 
     private lateinit var notificationManager: PlayerNotificationManager
@@ -247,21 +251,22 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
         // Controla los botones de la pantalla de bloqueo
 
         val timeLineQueueNavigator = object : TimelineQueueNavigator(mMediaSessionCompat) {
+
+
             override fun getMediaDescription(
-                player: Player?,
+                player: Player,
                 windowIndex: Int
             ): MediaDescriptionCompat {
+
                 val extras = Bundle()
                 extras.putString(
                     MediaMetadataCompat.METADATA_KEY_ARTIST,
-                    mediaDescriptionAdapter.getCurrentContentTitle(player!!).toString()
+                    mediaDescriptionAdapter.getCurrentContentTitle(player).toString()
                 )
                 extras.putString(
                     MediaMetadataCompat.METADATA_KEY_TITLE,
                     mediaDescriptionAdapter.getCurrentContentText(player).toString()
                 )
-
-
 
                 return MediaDescriptionCompat.Builder()
                     .setTitle(mediaDescriptionAdapter.getCurrentContentText(player))
@@ -271,17 +276,9 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
                     .build()
             }
 
-            override fun onSkipToNext(player: Player?, controlDispatcher: ControlDispatcher?) {
-                Log.e("tag", "seek next")
-            }
-
-            override fun onSkipToPrevious(player: Player?, controlDispatcher: ControlDispatcher?) {
-                Log.e("tag", "seek previous")
-            }
-
         }
 
-        val mediaSessionConnector = MediaSessionConnector(mMediaSessionCompat)
+        mediaSessionConnector = MediaSessionConnector(mMediaSessionCompat)
         mediaSessionConnector.setQueueNavigator(timeLineQueueNavigator)
         mediaSessionConnector.setPlayer(player)
         mMediaControllerCompat = mMediaSessionCompat.controller
@@ -452,8 +449,8 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
     private fun buildMediaInfo(mimeType: String, url: String): MediaInfo {
 
         val mediaData = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE)
-        mediaData.putString(MediaMetadata.KEY_TITLE, sonName)
-        mediaData.putString(MediaMetadata.KEY_ALBUM_ARTIST, artistName)
+        mediaData.putString(MediaMetadataCompat.METADATA_KEY_TITLE, sonName)
+        mediaData.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artistName)
         mediaData.addImage(WebImage(Uri.parse(util.getDefault(Default.ARTWORK))))
 
         val mediaInfo = MediaInfo.Builder(url)
@@ -471,6 +468,7 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
 
         if (currentPlayerType == PlayerType.LOCAL) {
 
+            mediaSessionConnector.setPlayer(player)
 
             // Volver a mostar la notificacion si se saco por el cast
 
@@ -490,6 +488,8 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
 
         } else if (currentPlayerType == PlayerType.CAST) {
 
+            mediaSessionConnector.setPlayer(castPlayer)
+
             val intent = Intent().apply {
                 action = SWITCH_SOURCE
                 putExtra("source", false)
@@ -503,13 +503,14 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
             if (currentSourceType == SourceType.VIDEO) {
                 remoteMediaClient.load(mediaCastInfo[lastSelectedAudioQuality + mediaSourcesVideo.size])
             } else if (currentSourceType == SourceType.AUDIO) {
+
                 remoteMediaClient.load(mediaCastInfo[lastSelectedAudioQuality])
             }
 
         }
 
-        Log.e("tag", "selected video index $lastSelectedVideoQuality")
-        Log.e("tag", "selected audio index $lastSelectedAudioQuality")
+//        Log.e("tag", "selected video index $lastSelectedVideoQuality")
+//        Log.e("tag", "selected audio index $lastSelectedAudioQuality")
 
     }
 
@@ -545,6 +546,7 @@ class ExoplayerService : Service(), Utilities.ArtworkListener,
     }
 
     override fun onCastSessionAvailable() {
+
         currentPlayerType = PlayerType.CAST
         castPlayer.loadItems(mediaCastItems.toTypedArray(), 0, 0, Player.REPEAT_MODE_OFF)
         remoteMediaClient = mSessionManager.currentCastSession.remoteMediaClient
