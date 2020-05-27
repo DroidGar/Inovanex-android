@@ -70,6 +70,8 @@ import com.sothree.slidinguppanel.SlidingUpPanelLayout
 import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar.*
+import kotlinx.android.synthetic.main.app_bar.logo
+import kotlinx.android.synthetic.main.fragment_trivia.*
 import kotlinx.android.synthetic.main.scene1.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -77,6 +79,7 @@ import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 
 enum class SourceType {
@@ -322,7 +325,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         ) {
 
             if (newState == SlidingUpPanelLayout.PanelState.EXPANDED) {
-                setChatHeight(height - 130)
+                setChatHeight(height - 50)
 
 
             }
@@ -628,6 +631,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
     }
 
+
     private fun cancelRecording() {
 
         val res = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -636,7 +640,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
             TODO("VERSION.SDK_INT < O")
         }
 
-        val elapsedMillis = SystemClock.elapsedRealtime()
+       val elapsedMillis = SystemClock.elapsedRealtime()
 
         if (elapsedMillis < 500) {
             Thread.sleep(500)
@@ -655,6 +659,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
     private fun sendAudio(path: String) {
 
+
         val user = FirebaseAuth.getInstance().currentUser;
         val data = JSONObject()
         data.put("type", 2)
@@ -662,12 +667,14 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         data.put("image", user?.photoUrl)
         data.put("message", path)
         data.put("local", true)
+        data.put("duration", (recordingView.timeElapsed - 1).toString() + " sec ")
         chatAdapter.add(data)
 
 
         val message = JSONObject()
         message.put("type", 2)
         message.put("message", encoder(path))
+        message.put("duration", startRecordTime)
         socket.sendFile(message)
 
         rv.smoothScrollToPosition(chatAdapter.itemCount - 1)

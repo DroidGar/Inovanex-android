@@ -26,111 +26,120 @@
             android:background="#55000000" />
 
 
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-
-            <com.sothree.slidinguppanel.SlidingUpPanelLayout
-                android:id="@+id/panel"
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:gravity="bottom"
-                app:umanoFadeColor="#88000000"
-                app:umanoOverlay="true"
-                app:umanoPanelHeight="150dp"
-                app:umanoScrollableView="@id/rv"
-                app:umanoShadowHeight="0dp">
+                android:layout_height="match_parent">
 
-                <LinearLayout
+                <com.sothree.slidinguppanel.SlidingUpPanelLayout
+                    android:id="@+id/panel"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:orientation="vertical">
-
-                    <com.google.android.exoplayer2.ui.PlayerView
-                        android:id="@+id/playerView"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        app:controller_layout_id="@layout/exo_controls_view"
-                        app:hide_on_touch="false"
-                        app:resize_mode="fixed_height"
-                        app:show_timeout="0" />
-
-                    <FrameLayout
-                        android:id="@+id/sceneRoot"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_marginTop="90dp" />
-
-                </LinearLayout>
-
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent">
+                    android:gravity="bottom"
+                    app:umanoFadeColor="#99000000"
+                    app:umanoOverlay="true"
+                    app:umanoPanelHeight="150dp"
+                    app:umanoScrollableView="@id/rv"
+                    app:umanoShadowHeight="0dp"
+                    app:umanoDragView="@+id/chatView">
 
                     <LinearLayout
-                        android:id="@+id/chatView"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical">
 
-                        <ImageView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:layout_marginTop="10dp"
-                            android:layout_marginBottom="10dp"
-                            android:src="@drawable/ic_chevron_up"
-                            android:tint="#FFF" />
-
-                        <androidx.recyclerview.widget.RecyclerView
-                            android:id="@+id/rv"
+                        <com.google.android.exoplayer2.ui.PlayerView
+                            android:id="@+id/playerView"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:clipToPadding="true"
-                            android:fadeScrollbars="true"
-                            android:fadingEdge="horizontal"
-                            android:fadingEdgeLength="40dp"
-                            android:fillViewport="false"
-                            android:focusable="true"
-                            android:padding="10dp"
-                            android:focusableInTouchMode="true"
-                            android:requiresFadingEdge="vertical"
-                            android:scrollbars="vertical" />
+                            app:controller_layout_id="@layout/exo_controls_view"
+                            app:hide_on_touch="false"
+                            app:resize_mode="fixed_height"
+                            app:show_timeout="0" />
 
+                        <FrameLayout
+                            android:id="@+id/sceneRoot"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginTop="90dp" />
 
                     </LinearLayout>
 
-                </LinearLayout>
-            </com.sothree.slidinguppanel.SlidingUpPanelLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
+
+                        <LinearLayout
+                            android:padding="0dp"
+                            android:layout_margin="0dp"
+                            android:id="@+id/chatView"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical">
+
+                            <ImageView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:layout_marginTop="10dp"
+                                android:layout_marginBottom="10dp"
+                                android:src="@drawable/ic_chevron_up"
+                                android:tint="#FFF" />
+
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:layout_marginBottom="50dp"
+                                android:id="@+id/rv"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:clipToPadding="true"
+                                android:fadeScrollbars="true"
+                                android:fadingEdge="horizontal"
+                                android:fadingEdgeLength="40dp"
+                                android:fillViewport="false"
+                                android:focusable="true"
+                                android:focusableInTouchMode="true"
+                                android:padding="10dp"
+                                android:requiresFadingEdge="vertical"
+                                android:scrollbars="vertical"
+                                />
 
 
-            <Button
-                android:id="@+id/loginButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginEnd="12dp"
-                android:layout_marginBottom="10dp"
-                android:background="@color/colorAccent"
-                android:fontFamily="@font/proxima_semibold"
-                android:text="@string/identify"
-                android:textColor="#000"
-                android:visibility="gone" />
+                        </LinearLayout>
 
-            <com.emperador.button.AudioRecordView
-                android:id="@+id/recordingView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clickable="true"
-                android:focusable="true" />
+                    </LinearLayout>
+                </com.sothree.slidinguppanel.SlidingUpPanelLayout>
 
+
+                <Button
+                    android:layout_gravity="bottom"
+                    android:id="@+id/loginButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="12dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@color/colorAccent"
+                    android:fontFamily="@font/proxima_semibold"
+                    android:text="@string/identify"
+                    android:textColor="#000"
+                    android:visibility="gone" />
+
+                <com.emperador.button.AudioRecordView
+                    android:layout_gravity="bottom"
+                    android:id="@+id/recordingView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+            </FrameLayout>
 
             <fragment
                 android:id="@+id/castPlayerView"
@@ -149,7 +158,6 @@
 
 
         <include layout="@layout/app_bar" />
-
 
 
     </FrameLayout>
