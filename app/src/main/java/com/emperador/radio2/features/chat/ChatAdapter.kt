@@ -133,7 +133,7 @@ class ChatAdapter(private var messages: JSONArray, val context: Activity) :
             itemView.message.text = "Audio enviado ${message.getString("duration")}"
 
             Glide.with(context)
-                .load(message.getString("image"))
+                .load(message.getString("audio"))
                 .apply(RequestOptions.circleCropTransform())
                 .into(itemView.image)
         }

@@ -21,7 +21,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Configuraciones"
+            android:text="CONFIGURACIONES"
             android:textSize="26sp"
             android:textColor="#FFF"
             android:fontFamily="@font/proxima_semibold"
@@ -37,7 +37,7 @@
         android:orientation="vertical">
 
         <TextView
-            android:text="Video"
+            android:text="VIDEO"
             android:fontFamily="@font/proxima_semibold"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -58,7 +58,7 @@
             <TextView
                 android:fontFamily="@font/proxim"
                 style="@style/TextAppearance.AppCompat.Body1"
-                android:text="Calidad"
+                android:text="CALIDAD"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"/>

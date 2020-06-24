@@ -6,27 +6,26 @@ import android.app.Service
 import android.content.*
 import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Binder
-import android.os.Bundle
-import android.os.IBinder
+import android.os.*
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
-import android.view.View.GONE
 import android.widget.Toast
 import androidx.media.session.MediaButtonReceiver
-import androidx.mediarouter.media.MediaItemMetadata.KEY_TITLE
+import com.emperador.radio2.core.networking.Statistics
 import com.emperador.radio2.core.utils.Default
 import com.emperador.radio2.core.utils.Utilities
 import com.emperador.radio2.features.programation.OnProgramationListener
 import com.emperador.radio2.features.programation.ProgramationHelper
 import com.emperador.radio2.features.programation.models.Program
 import com.emperador.radio2.features.programation.models.ProgramDay
-import com.google.android.exoplayer2.*
-import com.google.android.exoplayer2.ext.cast.CastPlayer
-import com.google.android.exoplayer2.ext.cast.SessionAvailabilityListener
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.ExoPlaybackException
+import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.audio.AudioAttributes
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
 import com.google.android.exoplayer2.metadata.MetadataOutput
@@ -41,17 +40,11 @@ import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.MimeTypes
 import com.google.android.exoplayer2.util.Util
-import com.google.android.gms.cast.MediaInfo
-import com.google.android.gms.cast.MediaMetadata
-import com.google.android.gms.cast.MediaQueueItem
-import com.google.android.gms.cast.framework.CastContext
-import com.google.android.gms.cast.framework.SessionManager
-import com.google.android.gms.cast.framework.media.RemoteMediaClient
-import com.google.android.gms.common.images.WebImage
+import java.io.BufferedReader
+import java.net.URLConnection
 
 @Suppress("DEPRECATION")
-class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationListener,
-    SessionAvailabilityListener {
+class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationListener {
 
     private lateinit var mediaSessionConnector: MediaSessionConnector
     private lateinit var player: SimpleExoPlayer
@@ -66,9 +59,6 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
     private val USER_AGENT = "Inovanex"
 
 
-    private lateinit var remoteMediaClient: RemoteMediaClient
-
-
     private var currentSourceType = SourceType.AUDIO
     private var currentPlayerType = PlayerType.LOCAL
 
@@ -76,11 +66,7 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
     private var lastSelectedVideoQuality = 0
 
 
-    private var mediaCastItems = mutableListOf<MediaQueueItem>()
-    private var mediaCastInfo = mutableListOf<MediaInfo>()
-
     private lateinit var util: Utilities
-
 
     private var selectedMediaSourceIndex = 0
     private var mediaSourcesAudio = HashMap<Int, MediaSource>()
@@ -91,11 +77,6 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
     private var artistName = ""
     private var artworkBitmap: Bitmap? = null
 
-    private lateinit var mSessionManager: SessionManager
-    private lateinit var mCastContext: CastContext
-
-    private lateinit var castPlayer: CastPlayer
-
     private var currentProgram: Program? = null
     private lateinit var programmHelper: ProgramationHelper
 
@@ -105,6 +86,7 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
         const val SWITCH_VIDEO_QUALITY = "quality"
         const val SWITCH_TYPE = "type"
         const val SWITCH_SOURCE = "source"
+        const val SWITCH_PLAYER = "player"
 
     }
 
@@ -113,8 +95,27 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
         return ExoServiceBinder()
     }
 
+
+    lateinit var statistics: Statistics
+
+    val handler = Handler()
+    var runnable = handler.postDelayed(object : Runnable {
+        override fun run() {
+            statistics.update(5)
+            handler.postDelayed(this, 5000)//1 sec delay
+        }
+    }, 0)
+
+
     override fun onCreate() {
         super.onCreate()
+
+
+
+        statistics = Statistics(this)
+        statistics.initSession()
+
+
 
         util = Utilities(this, this)
 
@@ -130,6 +131,13 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
 
         buildNotification()
 
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.CONTENT_TYPE_MUSIC)
+            .build()
+
+
+        player.setAudioAttributes(audioAttributes,true)
         player.addListener(playerEventListener)
         player.addMetadataOutput(metadataOutput)
         player.prepare(mediaSources)
@@ -138,15 +146,13 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
 
         lastSelectedVideoQuality = util.getSelectedVideoQuality() + mediaSourcesAudio.size
 
-        mCastContext = CastContext.getSharedInstance(this)
-        mSessionManager = CastContext.getSharedInstance(this).sessionManager
-        castPlayer = CastPlayer(mCastContext)
-        castPlayer.setSessionAvailabilityListener(this)
+
 
         programmHelper = ProgramationHelper(this, this)
         programmHelper.refresh()
 
         registerReceiver(onSwitchType, IntentFilter(SWITCH_TYPE))
+        registerReceiver(onSwitchPlayer, IntentFilter(SWITCH_PLAYER))
         registerReceiver(onSwitchVideoQuality, IntentFilter(SWITCH_VIDEO_QUALITY))
 
 
@@ -169,7 +175,23 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
             currentSourceType =
                 if (currentSourceType == SourceType.AUDIO) SourceType.VIDEO else SourceType.AUDIO
 
+
+
+            Log.e("TAG", currentSourceType.toString())
             switchSourceType()
+
+        }
+    }
+
+    private val onSwitchPlayer = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+
+            currentPlayerType =
+                if (intent.getBooleanExtra("cast", false)) PlayerType.CAST else PlayerType.LOCAL
+
+            player.playWhenReady = currentPlayerType == PlayerType.LOCAL
+
+            Log.e("tag", "press play ${player.playWhenReady}")
 
         }
     }
@@ -220,7 +242,9 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
             notification: Notification,
             ongoing: Boolean
         ) {
-            startForeground(notificationId, notification, foregroundServiceType)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(notificationId, notification, foregroundServiceType)
+            }
         }
 
     }
@@ -233,9 +257,10 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
 
     override fun onDestroy() {
 
-
+        handler.removeCallbacksAndMessages(null)
         notificationManager.setPlayer(null)
         player.stop()
+
         Log.e("TAG", "onDestroyService")
         super.onDestroy()
     }
@@ -302,7 +327,7 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
             val audio = buildMediaSource(url, item.first)!!
             concatenatedSource.addMediaSource(i, audio)
             mediaSourcesAudio[i] = audio
-            mediaCastItems.add(MediaQueueItem.Builder(buildMediaInfo(mimeAudio, url)).build())
+            //  mediaCastItems.add(MediaQueueItem.Builder(buildMediaInfo(mimeAudio, url)).build())
 
         }
 
@@ -321,7 +346,7 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
             val video = buildMediaSource(url, item.first)!!
             concatenatedSource.addMediaSource(index, video)
             mediaSourcesVideo[index] = video
-            mediaCastItems.add(MediaQueueItem.Builder(buildMediaInfo(mimeVideo, url)).build())
+            //    mediaCastItems.add(MediaQueueItem.Builder(buildMediaInfo(mimeVideo, url)).build())
         }
 
         mediaSources = concatenatedSource
@@ -334,7 +359,6 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
         val mimeType = data[data.size - 1]
         val uri = Uri.parse(url)
 
-//        Log.e("TAG", "Mime Type -> $mimeType")
 
         val name = Util.getUserAgent(this, USER_AGENT)
         val dsf: DataSource.Factory = DefaultDataSourceFactory(this, name)
@@ -446,81 +470,18 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
         notificationManager.invalidate()
     }
 
-    private fun buildMediaInfo(mimeType: String, url: String): MediaInfo {
-
-        val mediaData = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE)
-        mediaData.putString(MediaMetadataCompat.METADATA_KEY_TITLE, sonName)
-        mediaData.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artistName)
-        mediaData.addImage(WebImage(Uri.parse(util.getDefault(Default.ARTWORK))))
-
-        val mediaInfo = MediaInfo.Builder(url)
-            .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
-            .setContentType(mimeType)
-            .setMetadata(mediaData).build()
-
-        mediaCastInfo.add(mediaInfo)
-
-        return mediaInfo
-    }
-
 
     private fun switchSourceType() {
 
-        if (currentPlayerType == PlayerType.LOCAL) {
+        Log.e("tag", currentPlayerType.toString())
 
-            mediaSessionConnector.setPlayer(player)
-
-            // Volver a mostar la notificacion si se saco por el cast
-
-            if (currentSourceType == SourceType.VIDEO) {
-                player.seekTo(lastSelectedVideoQuality, C.TIME_UNSET)
-            } else if (currentSourceType == SourceType.AUDIO) {
-                player.seekTo(lastSelectedAudioQuality, C.TIME_UNSET)
-            }
-
-            player.playWhenReady = true
-
-            val intent = Intent().apply {
-                action = SWITCH_SOURCE
-                putExtra("source", true)
-            }
-            sendBroadcast(intent)
-
-        } else if (currentPlayerType == PlayerType.CAST) {
-
-            mediaSessionConnector.setPlayer(castPlayer)
-
-            val intent = Intent().apply {
-                action = SWITCH_SOURCE
-                putExtra("source", false)
-            }
-            sendBroadcast(intent)
-
-            player.playWhenReady = false
-            // ocultar notificacion del player para mostrar la del cast
-
-
-            if (currentSourceType == SourceType.VIDEO) {
-                remoteMediaClient.load(mediaCastInfo[lastSelectedAudioQuality + mediaSourcesVideo.size])
-            } else if (currentSourceType == SourceType.AUDIO) {
-
-                remoteMediaClient.load(mediaCastInfo[lastSelectedAudioQuality])
-            }
-
+        if (currentSourceType == SourceType.VIDEO) {
+            player.seekTo(lastSelectedVideoQuality, C.TIME_UNSET)
+        } else if (currentSourceType == SourceType.AUDIO) {
+            player.seekTo(lastSelectedAudioQuality, C.TIME_UNSET)
         }
 
-//        Log.e("tag", "selected video index $lastSelectedVideoQuality")
-//        Log.e("tag", "selected audio index $lastSelectedAudioQuality")
 
-    }
-
-    private fun getNextReason(reason: Int): String {
-        return when (reason) {
-            Player.DISCONTINUITY_REASON_PERIOD_TRANSITION -> "This happens when playback automatically transitions from one item to the next."
-            Player.DISCONTINUITY_REASON_SEEK -> "This happens when the current playback item changes as part of a seek operation, for example when calling Player.next"
-            Player.TIMELINE_CHANGE_REASON_DYNAMIC -> "This happens when the playlist changes, e.g. if items are added, moved, or removed."
-            else -> "Unknown change mediasourse reason"
-        }
     }
 
 
@@ -545,19 +506,6 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
         switchSourceType()
     }
 
-    override fun onCastSessionAvailable() {
-
-        currentPlayerType = PlayerType.CAST
-        castPlayer.loadItems(mediaCastItems.toTypedArray(), 0, 0, Player.REPEAT_MODE_OFF)
-        remoteMediaClient = mSessionManager.currentCastSession.remoteMediaClient
-        switchSourceType()
-
-    }
-
-    override fun onCastSessionUnavailable() {
-        currentPlayerType = PlayerType.LOCAL
-        switchSourceType()
-    }
 
     override fun onProgramChange(day: ProgramDay?, program: Program?) {
         currentProgram = program

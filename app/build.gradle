@@ -10,11 +10,12 @@ android {
         applicationId "com.emperador.inovanex"
         minSdkVersion 21
         targetSdkVersion 29
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
 
         buildConfigField "int", "id", "4"
         buildConfigField "int", "splash", "0"
+        buildConfigField "String", "name", "\"Inovanex Radio\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -55,8 +56,8 @@ dependencies {
 
     implementation "androidx.cardview:cardview:1.0.0"
 
-    implementation 'com.google.firebase:firebase-auth:19.3.0'
-    implementation 'com.google.firebase:firebase-messaging:20.1.4'
+    implementation 'com.google.firebase:firebase-auth:19.3.1'
+    implementation 'com.google.firebase:firebase-messaging:20.2.0'
 
     implementation 'com.google.android.gms:play-services-auth:18.0.0'
     implementation 'com.facebook.android:facebook-android-sdk:5.0.1'
@@ -69,7 +70,16 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 
+    // Recommended: Add the Firebase SDK for Google Analytics.
+    implementation 'com.google.firebase:firebase-analytics:17.4.3'
+
+    // Add the Firebase Crashlytics SDK.
+    implementation 'com.google.firebase:firebase-crashlytics:17.0.1'
+
     implementation project(path: ':button')
 }
 
 apply plugin: 'com.google.gms.google-services'
+
+// Apply the Crashlytics Gradle plugin
+apply plugin: 'com.google.firebase.crashlytics'

@@ -12,6 +12,7 @@ import android.media.MediaRecorder
 import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
+import android.support.v4.media.MediaMetadataCompat
 import android.transition.Scene
 import android.util.Base64
 import android.util.DisplayMetrics
@@ -60,18 +61,20 @@ import com.emperador.radio2.features.trivia.TriviaActivity
 import com.facebook.login.LoginManager
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
-import com.google.android.exoplayer2.ext.cast.CastPlayer
 import com.google.android.exoplayer2.metadata.MetadataOutput
 import com.google.android.exoplayer2.metadata.icy.IcyInfo
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
-import com.google.android.gms.cast.framework.CastButtonFactory
+import com.google.android.exoplayer2.util.MimeTypes
+import com.google.android.gms.cast.*
+import com.google.android.gms.cast.MediaInfo.Builder
+import com.google.android.gms.cast.framework.*
+import com.google.android.gms.cast.framework.media.RemoteMediaClient
+import com.google.android.gms.common.images.WebImage
 import com.google.firebase.auth.FirebaseAuth
 import com.sothree.slidinguppanel.SlidingUpPanelLayout
 import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar.*
-import kotlinx.android.synthetic.main.app_bar.logo
-import kotlinx.android.synthetic.main.fragment_trivia.*
 import kotlinx.android.synthetic.main.scene1.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -79,7 +82,7 @@ import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.TimeUnit
+import kotlin.collections.ArrayList
 
 
 enum class SourceType {
@@ -110,7 +113,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     private var currentSourceType = SourceType.AUDIO
     private var currentPlayerType = PlayerType.LOCAL
 
-    private var sonName = ""
+    private var songName = ""
     private var artistName = ""
     private var artworkBitmap: Bitmap? = null
 
@@ -118,13 +121,169 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
     private lateinit var player: SimpleExoPlayer
 
+    private lateinit var mSessionManager: SessionManager
+    private lateinit var remoteMediaClient: RemoteMediaClient
+    private lateinit var mediaQueueData: MediaQueueData
+    private var loadingCast = false
+
+
+    private val mSessionManagerListener = object : SessionManagerListener<CastSession> {
+        override fun onSessionStarted(session: CastSession?, sessionId: String?) {
+            currentPlayerType = PlayerType.CAST
+            notifyCastExoPlayer()
+
+            Log.e("tag", "onSessionStarted")
+            loadingCast = false
+            updateHomeScreen()
+            player.playWhenReady = false
+            remoteMediaClient = session!!.remoteMediaClient
+
+            if (currentSourceType == SourceType.VIDEO) {
+                remoteMediaClient.load(mediaQueueData.items!![1].media, true)
+            } else {
+                remoteMediaClient.load(mediaQueueData.items!![0].media, true)
+            }
+
+        }
+
+        override fun onSessionResumed(session: CastSession?, wasSuspended: Boolean) {
+            currentPlayerType = PlayerType.CAST
+            notifyCastExoPlayer()
+
+            loadingCast = false
+            remoteMediaClient = session!!.remoteMediaClient
+
+
+            updateHomeScreen()
+            player.playWhenReady = false
+            Log.e("tag", "onSessionResumed")
+        }
+
+        override fun onSessionEnded(session: CastSession?, error: Int) {
+            currentPlayerType = PlayerType.LOCAL
+            notifyCastExoPlayer()
+
+            player.playWhenReady = true
+
+            updateHomeScreen()
+
+            Log.e("tag", "onSessionEnded")
+        }
+
+        override fun onSessionResumeFailed(p0: CastSession?, p1: Int) {
+            loadingCast = false
+            currentPlayerType = PlayerType.LOCAL
+            notifyCastExoPlayer()
+            updateHomeScreen()
+            player.playWhenReady = true
+            Log.e("tag", "onSessionResumeFailed")
+        }
+
+        override fun onSessionSuspended(p0: CastSession?, p1: Int) {
+            Log.e("tag", "onSessionSuspended")
+            loadingCast = false
+            currentPlayerType = PlayerType.LOCAL
+            notifyCastExoPlayer()
+        }
+
+        override fun onSessionStarting(p0: CastSession?) {
+            loadingCast = true
+            currentPlayerType = PlayerType.CAST
+            notifyCastExoPlayer()
+            updateHomeScreen()
+            player.playWhenReady = false
+            Log.e("tag", "onSessionStarting")
+        }
+
+        override fun onSessionResuming(p0: CastSession?, p1: String?) {
+            Log.e("tag", "onSessionResuming")
+            loadingCast = true
+            currentPlayerType = PlayerType.CAST
+            notifyCastExoPlayer()
+        }
+
+        override fun onSessionEnding(p0: CastSession?) {
+            Log.e("tag", "onSessionEnding")
+            currentPlayerType = PlayerType.LOCAL
+            notifyCastExoPlayer()
+        }
+
+        override fun onSessionStartFailed(p0: CastSession?, p1: Int) {
+            Log.e("tag", "onSessionStartFailed")
+            currentPlayerType = PlayerType.LOCAL
+            notifyCastExoPlayer()
+        }
+    }
+
+    private fun buildMediaCastQueue() {
+
+        val mimeAudio = MimeTypes.AUDIO_UNKNOWN
+        val mimeVideo = MimeTypes.VIDEO_UNKNOWN
+
+        val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MUSIC_TRACK)
+
+        metadata.putString(
+            MediaMetadata.KEY_TITLE,
+            util.getDefault(Default.SONG_NAME)
+        )
+        metadata.putString(
+            MediaMetadata.KEY_ALBUM_ARTIST,
+            util.getDefault(Default.ARTIST_NAME)
+        )
+        metadata.putString(
+            MediaMetadata.KEY_ALBUM_TITLE,
+            "EN VIVO"
+        )
+
+        metadata.addImage(WebImage(Uri.parse(util.getDefault(Default.ARTWORK))))
+        metadata.addImage(WebImage(Uri.parse(util.getDefault(Default.ARTWORK))))
+        metadata.addImage(WebImage(Uri.parse(util.getDefault(Default.ARTWORK))))
+
+        val mediaInfoAudio = Builder("https://cdn2.instream.audio/:9243/stream")
+            .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
+            .setContentType(mimeAudio)
+            .setMetadata(metadata)
+            .build()
+
+        val mediaInfoVideo =
+            Builder("https://59db7e671a1ad.streamlock.net:443/1280demo/mp4:1280demo_360p/playlist.m3u8")
+                .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
+                .setContentType(mimeVideo)
+                .setMetadata(metadata)
+                .build()
+
+        val castQueueList = mutableListOf<MediaQueueItem>()
+        val audio = MediaQueueItem.Builder(mediaInfoAudio).build()
+        val video = MediaQueueItem.Builder(mediaInfoVideo).build()
+        castQueueList.add(0, audio)
+        castQueueList.add(1, video)
+
+        mediaQueueData = MediaQueueData.Builder()
+            .setItems(castQueueList)
+            .setName("Radio")
+            .setQueueType(MediaQueueData.MEDIA_QUEUE_TYPE_GENERIC)
+            .build()
+
+
+    }
+
+    private fun notifyCastExoPlayer() {
+        val intent2 = Intent().apply {
+            action = ExoplayerService.SWITCH_PLAYER
+            putExtra("cast", currentPlayerType == PlayerType.CAST)
+        }
+        sendBroadcast(intent2)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
-
         util = Utilities(this, this)
+
+        CastButtonFactory.setUpMediaRouteButton(applicationContext, mediaButton)
+        mSessionManager = CastContext.getSharedInstance(this).sessionManager
+        buildMediaCastQueue()
 
         scene1 = Scene.getSceneForLayout(sceneRoot, R.layout.scene1, this)
 
@@ -143,14 +302,37 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         changeMediaSource.setOnClickListener {
             (it as TextView)
 
+            if (loadingCast) {
+                Toast.makeText(this, "Espere que termine de cargar su sesión CAST", LENGTH_SHORT)
+                    .show()
+                return@setOnClickListener
+            }
+
             currentSourceType =
                 if (currentSourceType == SourceType.AUDIO) SourceType.VIDEO else SourceType.AUDIO
+
+
+            if (currentPlayerType == PlayerType.CAST) {
+                if (currentSourceType == SourceType.VIDEO) {
+                    if (remoteMediaClient != null)
+                        remoteMediaClient.load(mediaQueueData.items!![1].media, true)
+                } else {
+                    if (remoteMediaClient != null)
+                        remoteMediaClient.load(mediaQueueData.items!![0].media, true)
+                }
+            }
+
+
 
             val intent = Intent().apply {
                 action = ExoplayerService.SWITCH_TYPE
                 putExtra("switchType", true)
             }
             sendBroadcast(intent)
+
+
+
+
 
             updateHomeScreen()
         }
@@ -165,10 +347,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
             player.playWhenReady = !player.playWhenReady
 
         }
-
-
-        CastButtonFactory.setUpMediaRouteButton(applicationContext, mediaButton)
-
 
 
         menu.setOnClickListener {
@@ -205,10 +383,23 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     var height: Int = 0
     var width: Int = 0
 
+    var doubleBackToExitPressedOnce = false
+    override fun onBackPressed() {
+
+        if (doubleBackToExitPressedOnce) {
+            super.onBackPressed()
+            return
+        }
+
+        doubleBackToExitPressedOnce = true
+        Toast.makeText(this, getString(R.string.press_twice), LENGTH_SHORT).show()
+
+        Handler().postDelayed({ doubleBackToExitPressedOnce = false }, 2000)
+    }
 
     private val onCurrentPlayerTypeListener = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            currentPlayerType = if(intent!!.getBooleanExtra("source", false))
+            currentPlayerType = if (intent!!.getBooleanExtra("source", false))
                 PlayerType.LOCAL
             else PlayerType.CAST
 
@@ -216,6 +407,23 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
         }
 
+    }
+
+    override fun onResume() {
+
+
+        mSessionManager.addSessionManagerListener(mSessionManagerListener, CastSession::class.java)
+
+        super.onResume()
+
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mSessionManager.removeSessionManagerListener(
+            mSessionManagerListener,
+            CastSession::class.java
+        )
     }
 
     private fun setChatHeight(height: Int) {
@@ -369,11 +577,11 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
                 val splitted = entry.title!!.split("-")
 
-                sonName = util.getDefault(Default.SONG_NAME)
+                songName = util.getDefault(Default.SONG_NAME)
                 artistName = util.getDefault(Default.ARTIST_NAME)
 
                 if (splitted.size == 2) {
-                    sonName = splitted[1].trim()
+                    songName = splitted[1].trim()
                     artistName = splitted[0].trim()
                 }
 
@@ -385,11 +593,11 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
                     if (util.showProgramImages() && currentProgram != null)
                         util.downloadImage(currentProgram!!.image)
                     else
-                        util.getArtwork(sonName, artistName)
+                        util.getArtwork(songName, artistName)
                 }
 
                 if (currentProgram != null) {
-                    sonName = currentProgram!!.title
+                    songName = currentProgram!!.title
                     artistName = currentProgram!!.locutor
                 }
 
@@ -420,7 +628,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
                 playerView.visibility = GONE
                 audioView.visibility = VISIBLE
 
-                song.text = sonName
+                song.text = songName
                 artist.text = artistName
 
             } else if (currentSourceType == SourceType.VIDEO) {
@@ -436,6 +644,8 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
 
         }
+
+
 
 
 
@@ -640,7 +850,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
             TODO("VERSION.SDK_INT < O")
         }
 
-       val elapsedMillis = SystemClock.elapsedRealtime()
+        val elapsedMillis = SystemClock.elapsedRealtime()
 
         if (elapsedMillis < 500) {
             Thread.sleep(500)
@@ -660,11 +870,11 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     private fun sendAudio(path: String) {
 
 
-        val user = FirebaseAuth.getInstance().currentUser;
+        val user = FirebaseAuth.getInstance().currentUser
         val data = JSONObject()
         data.put("type", 2)
         data.put("name", user?.displayName)
-        data.put("image", user?.photoUrl)
+        data.put("audio", user?.photoUrl)
         data.put("message", path)
         data.put("local", true)
         data.put("duration", (recordingView.timeElapsed - 1).toString() + " sec ")
@@ -685,7 +895,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
     private fun sendImage(path: String) {
 
-        val user = FirebaseAuth.getInstance().currentUser;
+        val user = FirebaseAuth.getInstance().currentUser
 
         val data = JSONObject()
         data.put("type", 3)

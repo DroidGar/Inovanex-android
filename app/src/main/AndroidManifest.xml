@@ -29,6 +29,8 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+
         </activity>
 
         <meta-data
@@ -53,15 +55,28 @@
             </intent-filter>
         </activity>
 
+        <!--        <meta-data-->
+        <!--            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"-->
+        <!--            android:value="com.google.android.exoplayer2.ext.cast.DefaultCastOptionsProvider" />-->
+
         <meta-data
             android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
-            android:value="com.google.android.exoplayer2.ext.cast.DefaultCastOptionsProvider" />
+            android:value="com.emperador.radio2.CastOptionsProvider" />
 
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize"
             android:launchMode="singleTop"
             tools:ignore="LockedOrientationActivity">
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:host="https://apps.instream.audio"
+                    android:path="/cast-receiver/index.html"
+                    android:scheme="https" />
+            </intent-filter>
 
         </activity>
         <activity android:name=".features.programation.ProgramDetail" />
@@ -81,7 +96,7 @@
 
         <service
             android:name=".ExoplayerService"
-            android:foregroundServiceType="mediaPlayback"/>
+            android:foregroundServiceType="mediaPlayback" />
 
         <service
             android:name=".features.push.PushService"

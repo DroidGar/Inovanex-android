@@ -46,6 +46,8 @@
 
     <string name="login">IDENTIFY AND COMMENT</string>
     <string name="logout">LOG OUT</string>
+    <string name="press_twice">Please click BACK again to exit</string>
+    <string name="receiver_id">EB6FD2AE</string>
 
 
 </resources>
