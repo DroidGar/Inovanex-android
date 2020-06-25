@@ -323,7 +323,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
             }
 
 
-
             val intent = Intent().apply {
                 action = ExoplayerService.SWITCH_TYPE
                 putExtra("switchType", true)
@@ -386,15 +385,21 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     var doubleBackToExitPressedOnce = false
     override fun onBackPressed() {
 
-        if (doubleBackToExitPressedOnce) {
-            super.onBackPressed()
-            return
+        val count = supportFragmentManager.backStackEntryCount
+
+        if (count == 0) {
+            if (doubleBackToExitPressedOnce) {
+                super.onBackPressed()
+                return
+            }
+
+            doubleBackToExitPressedOnce = true
+            Toast.makeText(this, getString(R.string.press_twice), LENGTH_SHORT).show()
+
+            Handler().postDelayed({ doubleBackToExitPressedOnce = false }, 2000)
+        } else {
+            supportFragmentManager.popBackStack()
         }
-
-        doubleBackToExitPressedOnce = true
-        Toast.makeText(this, getString(R.string.press_twice), LENGTH_SHORT).show()
-
-        Handler().postDelayed({ doubleBackToExitPressedOnce = false }, 2000)
     }
 
     private val onCurrentPlayerTypeListener = object : BroadcastReceiver() {

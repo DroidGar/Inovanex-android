@@ -16,6 +16,7 @@ import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.ImageRequest
 import com.android.volley.toolbox.JsonArrayRequest
+import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.emperador.radio2.BuildConfig
 import org.json.JSONArray
@@ -84,8 +85,6 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
     /** ARTWORK */
     fun getArtwork(song: String, artist: String) {
 
-
-
         val host = "https://spotify.instream.audio"
 
         val query = "$song $artist"
@@ -94,20 +93,20 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
         Log.i("EmperadorMusicservice", "getArtwork -> $path")
         val queue = Volley.newRequestQueue(context)
         // Request a string response from the provided URL.
-        val stringRequest = JsonArrayRequest(
+        val stringRequest = JsonObjectRequest(
             Request.Method.GET, path, null,
             Response.Listener { response ->
 
-                if (response.toString() == "[]") {
+                Log.e("TAG", response.toString())
+
+
+                if (!response.has("image")) {
                     downloadImage(getDefault(Default.ARTWORK))
                     return@Listener
                 }
 
-                val image = response.getJSONObject(0)
-                    .getJSONArray("album")
-                    .getJSONObject(0)
-                    .getJSONArray("images")
-                    .getJSONObject(1).getString("url")
+
+                val image = response.getString("image")
 
 
                 downloadImage(image)
@@ -157,11 +156,12 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
         return radio.getJSONArray("ads")
     }
 
-    fun getVideoQualities() : JSONArray {
+    fun getVideoQualities(): JSONArray {
         return radio.getJSONArray("video")
     }
+
     fun getSelectedVideoQuality(): Int {
-        return prefs.getInt("video-quality-selected",0)
+        return prefs.getInt("video-quality-selected", 0)
     }
 
     fun setSelectedVideoQuality(index: Int) {
