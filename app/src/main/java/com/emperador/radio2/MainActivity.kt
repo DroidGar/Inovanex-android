@@ -387,7 +387,14 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
         val count = supportFragmentManager.backStackEntryCount
 
+
         if (count == 0) {
+
+            if (panelExpanded) {
+                panel.panelState = SlidingUpPanelLayout.PanelState.COLLAPSED
+                return
+            }
+
             if (doubleBackToExitPressedOnce) {
                 super.onBackPressed()
                 return
@@ -526,6 +533,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     }
 
 
+    var panelExpanded = false;
     private val panelStateListener = object : SlidingUpPanelLayout.PanelSlideListener {
         override fun onPanelSlide(p: View?, slideOffset: Float) {
 
@@ -539,13 +547,13 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
             if (newState == SlidingUpPanelLayout.PanelState.EXPANDED) {
                 setChatHeight(height - 50)
-
+                panelExpanded = true
 
             }
 
             if (newState == SlidingUpPanelLayout.PanelState.COLLAPSED) {
                 setChatHeight(height / 3)
-
+                panelExpanded = false
 
             }
 
