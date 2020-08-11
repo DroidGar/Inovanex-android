@@ -13,7 +13,10 @@ abstract class TriviaRepositoryContract {
 
     abstract fun loadFromServer(listener: OnLoadFromServerListener)
 
-    abstract fun notifySelection(triviaId: Int, optionId: Int, listener: NetWorkListener)
+    abstract fun notifySelection(
+        triviaId: Int, optionId: Int, name: String,
+        image: String, listener: NetWorkListener
+    )
 
 
 }

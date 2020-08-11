@@ -15,13 +15,93 @@
       },
       "oauth_client": [
         {
-          "client_id": "818770043533-c659d414nf7qrncmopgvq1nteadspfd1.apps.googleusercontent.com",
+          "client_id": "818770043533-hb4doj8q1ag0lgpqmesc4gch5150fvag.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.emperador.inovanex",
-            "certificate_hash": "e55c08c105dc5f99ad651b9692116811ca8677e3"
+            "certificate_hash": "2e1bed8614377e9c943cadf26ac8fc6368cb91c7"
           }
         },
+        {
+          "client_id": "818770043533-am0mgphnfgmleqnbumqbooe6boeu3qqi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYY4AJEgT_6VEshHh_lm8kskOq02km5wA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "818770043533-am0mgphnfgmleqnbumqbooe6boeu3qqi.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "818770043533-s2nnl85fl22k9b9v6uahluhktkg4kjlf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "emperador.radio"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:818770043533:android:99f204c2d3300ce708b8c4",
+        "android_client_info": {
+          "package_name": "com.inovanex.aspen"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "818770043533-uu5oq8unukttr5o5idnncdmu9g39egld.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.inovanex.aspen",
+            "certificate_hash": "2e1bed8614377e9c943cadf26ac8fc6368cb91c7"
+          }
+        },
+        {
+          "client_id": "818770043533-am0mgphnfgmleqnbumqbooe6boeu3qqi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYY4AJEgT_6VEshHh_lm8kskOq02km5wA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "818770043533-am0mgphnfgmleqnbumqbooe6boeu3qqi.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "818770043533-s2nnl85fl22k9b9v6uahluhktkg4kjlf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "emperador.radio"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:818770043533:android:3b172ed1a99bd79c08b8c4",
+        "android_client_info": {
+          "package_name": "fmaspen.radio"
+        }
+      },
+      "oauth_client": [
         {
           "client_id": "818770043533-am0mgphnfgmleqnbumqbooe6boeu3qqi.apps.googleusercontent.com",
           "client_type": 3

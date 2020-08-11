@@ -89,7 +89,7 @@ class Login : AppCompatActivity() {
                 authWithGoogle(account!!)
             } catch (e: ApiException) {
                 // Google Sign In failed, update UI appropriately
-                Log.w("Login", "Google sign in failed", e)
+                Log.e("Login", "Google sign in failed", e)
                 // ...
             }
         } else {
@@ -121,7 +121,7 @@ class Login : AppCompatActivity() {
                     done()
                 } else {
                     // If sign in fails, display a message to the user.
-                    Log.w("Login", "signInWithCredential:failure", task.exception)
+                    Log.e("Login", "signInWithCredential:failure", task.exception)
                     Toast.makeText(this, "Fallo al autenticar con google", LENGTH_SHORT).show()
                 }
             }
@@ -129,7 +129,7 @@ class Login : AppCompatActivity() {
 
     private fun done() {
         val returnIntent = Intent()
-        returnIntent.putExtra("result",23794 )
+        returnIntent.putExtra("result",23662 )
         setResult(Activity.RESULT_OK, returnIntent)
         finish()
     }

@@ -1,5 +1,6 @@
 package com.emperador.radio2
 
+import ConnectivityReceiver
 import android.app.Activity
 import android.content.*
 import android.content.res.Configuration
@@ -9,10 +10,10 @@ import android.graphics.drawable.Drawable
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaRecorder
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
-import android.support.v4.media.MediaMetadataCompat
 import android.transition.Scene
 import android.util.Base64
 import android.util.DisplayMetrics
@@ -38,6 +39,7 @@ import com.bumptech.glide.request.transition.DrawableCrossFadeTransition
 import com.bumptech.glide.request.transition.Transition
 import com.bumptech.glide.request.transition.TransitionFactory
 import com.emperador.button.AudioRecordView
+import com.emperador.inovanex.features.ads.AdsHandler
 import com.emperador.inovanex.features.ads.OnAdsListener
 import com.emperador.radio2.core.utils.Default
 import com.emperador.radio2.core.utils.PermissionHandler
@@ -65,8 +67,11 @@ import com.google.android.exoplayer2.metadata.MetadataOutput
 import com.google.android.exoplayer2.metadata.icy.IcyInfo
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.util.MimeTypes
-import com.google.android.gms.cast.*
+import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaInfo.Builder
+import com.google.android.gms.cast.MediaMetadata
+import com.google.android.gms.cast.MediaQueueData
+import com.google.android.gms.cast.MediaQueueItem
 import com.google.android.gms.cast.framework.*
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.images.WebImage
@@ -82,7 +87,6 @@ import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
 
 
 enum class SourceType {
@@ -95,7 +99,7 @@ enum class PlayerType {
 
 class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsListener,
     Utilities.ArtworkListener, OnProgramationListener, OnSocketListener,
-    AudioManager.OnAudioFocusChangeListener {
+    AudioManager.OnAudioFocusChangeListener, ConnectivityReceiver.ConnectivityReceiverListener {
 
     private lateinit var chatAdapter: ChatAdapter
     private lateinit var socket: SocketController
@@ -119,101 +123,140 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
     private lateinit var scene1: Scene
 
-    private lateinit var player: SimpleExoPlayer
+    private var player: SimpleExoPlayer? = null
 
     private lateinit var mSessionManager: SessionManager
     private lateinit var remoteMediaClient: RemoteMediaClient
     private lateinit var mediaQueueData: MediaQueueData
     private var loadingCast = false
 
+    var height: Int = 0
+    var width: Int = 0
 
-    private val mSessionManagerListener = object : SessionManagerListener<CastSession> {
-        override fun onSessionStarted(session: CastSession?, sessionId: String?) {
-            currentPlayerType = PlayerType.CAST
-            notifyCastExoPlayer()
+    private var doubleBackToExitPressedOnce = false
+    var panelExpanded = false
 
-            Log.e("tag", "onSessionStarted")
-            loadingCast = false
-            updateHomeScreen()
-            player.playWhenReady = false
-            remoteMediaClient = session!!.remoteMediaClient
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
 
-            if (currentSourceType == SourceType.VIDEO) {
-                remoteMediaClient.load(mediaQueueData.items!![1].media, true)
-            } else {
-                remoteMediaClient.load(mediaQueueData.items!![0].media, true)
+        registerReceiver(
+            ConnectivityReceiver(),
+            IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+        )
+
+        util = Utilities(this, this)
+
+
+
+        CastButtonFactory.setUpMediaRouteButton(applicationContext, mediaButton)
+        mSessionManager = CastContext.getSharedInstance(this).sessionManager
+        buildMediaCastQueue()
+
+        scene1 = Scene.getSceneForLayout(sceneRoot, R.layout.scene1, this)
+
+        scene1.enter()
+
+
+        am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                .setAcceptsDelayedFocusGain(true)
+                .setOnAudioFocusChangeListener(this)
+                .build()
+        }
+
+        if (util.getVideoQualities().length() == 0) changeMediaSource.visibility = GONE
+
+        changeMediaSource.setOnClickListener {
+            (it as TextView)
+
+            if (loadingCast) {
+                Toast.makeText(this, "Espere que termine de cargar su sesión CAST", LENGTH_SHORT)
+                    .show()
+                return@setOnClickListener
             }
 
-        }
+            currentSourceType =
+                if (currentSourceType == SourceType.AUDIO) SourceType.VIDEO else SourceType.AUDIO
 
-        override fun onSessionResumed(session: CastSession?, wasSuspended: Boolean) {
-            currentPlayerType = PlayerType.CAST
-            notifyCastExoPlayer()
 
-            loadingCast = false
-            remoteMediaClient = session!!.remoteMediaClient
+            if (currentPlayerType == PlayerType.CAST) {
+                if (currentSourceType == SourceType.VIDEO) {
+                    if (remoteMediaClient != null)
+                        remoteMediaClient.load(mediaQueueData.items!![1].media, true)
+                } else {
+                    if (remoteMediaClient != null)
+                        remoteMediaClient.load(mediaQueueData.items!![0].media, true)
+                }
+            }
+
+
+            val intent = Intent().apply {
+                action = ExoplayerService.SWITCH_TYPE
+                putExtra("switchType", true)
+            }
+            sendBroadcast(intent)
+
+
+
 
 
             updateHomeScreen()
-            player.playWhenReady = false
-            Log.e("tag", "onSessionResumed")
         }
 
-        override fun onSessionEnded(session: CastSession?, error: Int) {
-            currentPlayerType = PlayerType.LOCAL
-            notifyCastExoPlayer()
-
-            player.playWhenReady = true
-
-            updateHomeScreen()
-
-            Log.e("tag", "onSessionEnded")
+        loginButton.setOnClickListener {
+            onMenuItemSelected(6)
         }
 
-        override fun onSessionResumeFailed(p0: CastSession?, p1: Int) {
-            loadingCast = false
-            currentPlayerType = PlayerType.LOCAL
-            notifyCastExoPlayer()
-            updateHomeScreen()
-            player.playWhenReady = true
-            Log.e("tag", "onSessionResumeFailed")
+
+        playPauseButton.setOnClickListener {
+
+            player?.playWhenReady = !player!!.playWhenReady
+
         }
 
-        override fun onSessionSuspended(p0: CastSession?, p1: Int) {
-            Log.e("tag", "onSessionSuspended")
-            loadingCast = false
-            currentPlayerType = PlayerType.LOCAL
-            notifyCastExoPlayer()
+
+        menu.setOnClickListener {
+            Log.e("atag", "menu")
+            onMenuItemSelected(10)
         }
 
-        override fun onSessionStarting(p0: CastSession?) {
-            loadingCast = true
-            currentPlayerType = PlayerType.CAST
-            notifyCastExoPlayer()
-            updateHomeScreen()
-            player.playWhenReady = false
-            Log.e("tag", "onSessionStarting")
-        }
+        AdsHandler(this)
 
-        override fun onSessionResuming(p0: CastSession?, p1: String?) {
-            Log.e("tag", "onSessionResuming")
-            loadingCast = true
-            currentPlayerType = PlayerType.CAST
-            notifyCastExoPlayer()
-        }
+        programmHelper = ProgramationHelper(this, this)
+        programmHelper.refresh()
 
-        override fun onSessionEnding(p0: CastSession?) {
-            Log.e("tag", "onSessionEnding")
-            currentPlayerType = PlayerType.LOCAL
-            notifyCastExoPlayer()
-        }
+        playImage = ContextCompat.getDrawable(this@MainActivity, R.drawable.ic_play)
+        pauseImage = ContextCompat.getDrawable(this@MainActivity, R.drawable.ic_pause)
 
-        override fun onSessionStartFailed(p0: CastSession?, p1: Int) {
-            Log.e("tag", "onSessionStartFailed")
-            currentPlayerType = PlayerType.LOCAL
-            notifyCastExoPlayer()
-        }
+        setUpWspButton()
+
+        initChat()
+
+        panel.addPanelSlideListener(panelStateListener)
+
+        screenSize()
+
+        panel.panelHeight = height / 3
+        setChatHeight(height / 3)
+
+        loginButton.visibility = GONE
+        recordingView.visibility = GONE
+
+        artwork.layoutParams.height = height / 3 - 50
+        artwork.layoutParams.width = height / 3 - 50
+
+        noInternet.setBackgroundColor(util.getPrimaryColor())
+        loginButton.setBackgroundColor(util.getPrimaryColor())
+
+        playPauseButton.visibility = GONE
+
+        util.downloadImage(util.getDefault(Default.ARTWORK))
+
     }
+
 
     private fun buildMediaCastQueue() {
 
@@ -275,114 +318,18 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         sendBroadcast(intent2)
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
 
-        util = Utilities(this, this)
+    override fun onNetworkConnectionChanged(isConnected: Boolean) {
 
-        CastButtonFactory.setUpMediaRouteButton(applicationContext, mediaButton)
-        mSessionManager = CastContext.getSharedInstance(this).sessionManager
-        buildMediaCastQueue()
+        if (!isConnected)
+            socket.disconnect()
+        else socket.connect()
 
-        scene1 = Scene.getSceneForLayout(sceneRoot, R.layout.scene1, this)
-
-        scene1.enter()
-
-
-        am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
-                .setAcceptsDelayedFocusGain(true)
-                .setOnAudioFocusChangeListener(this)
-                .build()
-        }
-
-        changeMediaSource.setOnClickListener {
-            (it as TextView)
-
-            if (loadingCast) {
-                Toast.makeText(this, "Espere que termine de cargar su sesión CAST", LENGTH_SHORT)
-                    .show()
-                return@setOnClickListener
-            }
-
-            currentSourceType =
-                if (currentSourceType == SourceType.AUDIO) SourceType.VIDEO else SourceType.AUDIO
-
-
-            if (currentPlayerType == PlayerType.CAST) {
-                if (currentSourceType == SourceType.VIDEO) {
-                    if (remoteMediaClient != null)
-                        remoteMediaClient.load(mediaQueueData.items!![1].media, true)
-                } else {
-                    if (remoteMediaClient != null)
-                        remoteMediaClient.load(mediaQueueData.items!![0].media, true)
-                }
-            }
-
-
-            val intent = Intent().apply {
-                action = ExoplayerService.SWITCH_TYPE
-                putExtra("switchType", true)
-            }
-            sendBroadcast(intent)
-
-
-
-
-
-            updateHomeScreen()
-        }
-
-        loginButton.setOnClickListener {
-            onMenuItemSelected(6)
-        }
-
-
-        playPauseButton.setOnClickListener {
-
-            player.playWhenReady = !player.playWhenReady
-
-        }
-
-
-        menu.setOnClickListener {
-            Log.e("atag", "menu")
-            onMenuItemSelected(10)
-        }
-
-//        AdsHandler(this)
-
-        programmHelper = ProgramationHelper(this, this)
-        programmHelper.refresh()
-
-        playImage = ContextCompat.getDrawable(this@MainActivity, R.drawable.ic_play)
-        pauseImage = ContextCompat.getDrawable(this@MainActivity, R.drawable.ic_pause)
-
-        setUpWspButton()
-
-        initChat()
-
-        panel.addPanelSlideListener(panelStateListener)
-
-        screenSize()
-
-        panel.panelHeight = height / 3
-        setChatHeight(height / 3)
-
-        loginButton.visibility = GONE
-
-        artwork.layoutParams.height = height / 3 - 50
-        artwork.layoutParams.width = height / 3 - 50
-
+        if (currentPlayerType == PlayerType.CAST) return
+        noInternet.visibility = if (isConnected) GONE else VISIBLE
+        player?.playWhenReady = isConnected
     }
 
-    var height: Int = 0
-    var width: Int = 0
-
-    var doubleBackToExitPressedOnce = false
     override fun onBackPressed() {
 
         val count = supportFragmentManager.backStackEntryCount
@@ -409,22 +356,11 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         }
     }
 
-    private val onCurrentPlayerTypeListener = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            currentPlayerType = if (intent!!.getBooleanExtra("source", false))
-                PlayerType.LOCAL
-            else PlayerType.CAST
-
-            updateHomeScreen()
-
-        }
-
-    }
 
     override fun onResume() {
 
-
         mSessionManager.addSessionManagerListener(mSessionManagerListener, CastSession::class.java)
+        ConnectivityReceiver.connectivityReceiverListener = this
 
         super.onResume()
 
@@ -465,35 +401,10 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
     }
 
-    private val playerEventListener = object : Player.EventListener {
-        override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-            when (playbackState) {
-                Player.STATE_BUFFERING -> {
-                    Log.e("state", "STATE_BUFFERING")
-
-                }
-                Player.STATE_IDLE -> {
-                    Log.e("state", "STATE_IDLE")
-
-                }
-                Player.STATE_READY -> {
-                    Log.e("state", "STATE_READY")
-
-                }
-                else -> {
-                    Log.e("state", playbackState.toString())
-
-                }
-            }
-            playPauseButton.setImageDrawable(if (player.isPlaying) pauseImage else playImage)
-        }
-    }
-
 
     private fun bindService() {
         Intent(this, ExoplayerService::class.java).also { intent ->
             bindService(intent, onServiceConnectionListener, Context.BIND_AUTO_CREATE)
-//            bindService(intent, onServiceConnectionListener, Context.BIND_AUTO_CREATE)
         }
     }
 
@@ -532,95 +443,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         super.onDestroy()
     }
 
-
-    var panelExpanded = false;
-    private val panelStateListener = object : SlidingUpPanelLayout.PanelSlideListener {
-        override fun onPanelSlide(p: View?, slideOffset: Float) {
-
-        }
-
-        override fun onPanelStateChanged(
-            panel: View?,
-            previousState: SlidingUpPanelLayout.PanelState?,
-            newState: SlidingUpPanelLayout.PanelState?
-        ) {
-
-            if (newState == SlidingUpPanelLayout.PanelState.EXPANDED) {
-                setChatHeight(height - 50)
-                panelExpanded = true
-
-            }
-
-            if (newState == SlidingUpPanelLayout.PanelState.COLLAPSED) {
-                setChatHeight(height / 3)
-                panelExpanded = false
-
-            }
-
-
-        }
-
-    }
-
-    private val onServiceConnectionListener = object : ServiceConnection {
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            Log.e("TAG", "Service disconected")
-            finish()
-        }
-
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            if (service is ExoplayerService.ExoServiceBinder) {
-                player = service.getExoPlayerInstance()
-                playerView.player = player
-                player.addMetadataOutput(metadataOutput)
-                player.addListener(playerEventListener)
-            }
-        }
-    }
-
-    private val metadataOutput = MetadataOutput {
-
-        Log.e("TAG", it.toString())
-        programmHelper.refresh()
-
-        for (i in 0 until it.length()) {
-            val entry = it.get(i)
-            if (entry is IcyInfo) {
-
-                val splitted = entry.title!!.split("-")
-
-                songName = util.getDefault(Default.SONG_NAME)
-                artistName = util.getDefault(Default.ARTIST_NAME)
-
-                if (splitted.size == 2) {
-                    songName = splitted[1].trim()
-                    artistName = splitted[0].trim()
-                }
-
-
-                if (util.isPortadaFija()) {
-                    util.downloadImage(util.getDefault(Default.ARTWORK))
-                } else {
-
-                    if (util.showProgramImages() && currentProgram != null)
-                        util.downloadImage(currentProgram!!.image)
-                    else
-                        util.getArtwork(songName, artistName)
-                }
-
-                if (currentProgram != null) {
-                    songName = currentProgram!!.title
-                    artistName = currentProgram!!.locutor
-                }
-
-                updateHomeScreen()
-
-            }
-        }
-        updateHomeScreen()
-    }
-
     private fun updateHomeScreen() {
 
         changeMediaSource.text = if (currentSourceType == SourceType.VIDEO) {
@@ -657,9 +479,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
 
         }
-
-
-
 
 
         Glide.with(this).load(util.getLogo()).into(logo)
@@ -737,7 +556,8 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     private fun logout() {
         LoginManager.getInstance().logOut()
         FirebaseAuth.getInstance().signOut()
-        //  (supportFragmentManager.findFragmentById(R.id.fragmentChat) as ChatFragment).logout()
+        loginButton.visibility = VISIBLE
+        recordingView.visibility = GONE
         Toast.makeText(this, "Saliste correctamente", Toast.LENGTH_SHORT).show()
     }
 
@@ -764,16 +584,16 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
         if (requestCode == LOGIN_CODE) {
             if (resultCode == RESULT_OK) {
-                if (FirebaseAuth.getInstance().currentUser != null) {
+                if (FirebaseAuth.getInstance().currentUser == null) {
                     loginButton.visibility = VISIBLE
                     recordingView.visibility = GONE
-
                 } else {
+                    socket.joinRoom()
                     loginButton.visibility = GONE
                     recordingView.visibility = VISIBLE
                 }
             } else {
-                Toast.makeText(this, "No se logro ingresar, reintente", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "No se logro ingresar, reintente", LENGTH_SHORT).show()
             }
 
 
@@ -820,6 +640,8 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
     private fun startRecording() {
 
+        checkPermissions()
+
         if (!canRecordAudio) {
             requestPermissions()
             return
@@ -830,11 +652,15 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         } else {
             TODO("VERSION.SDK_INT < O")
         }
+        try {
+            val destPath: String = MainActivity@this.getExternalFilesDir(null)!!.absolutePath
+            fileName = "${destPath}/audiorecordtest.3gp"
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
 
-        fileName = "${externalCacheDir!!.absolutePath}/audiorecordtest.3gp"
         File(fileName)
-
         recorder = MediaRecorder().apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
@@ -851,11 +677,12 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
             startRecordTime = System.nanoTime()
         }
 
-
     }
 
 
     private fun cancelRecording() {
+
+        if (!canRecordAudio) return
 
         val res = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             am.abandonAudioFocusRequest(audioFocusRequest)
@@ -1029,6 +856,9 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
                 }
 
                 cancelRecording()
+
+                if (!canRecordAudio) return
+
                 sendAudio(fileName)
             }
 
@@ -1060,7 +890,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     override fun onUnauthorized() {
     }
 
-    fun dialogGetImage() {
+    private fun dialogGetImage() {
 
         val items: Array<CharSequence> =
             arrayOf(
@@ -1104,6 +934,14 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     }
 
     private fun getImageFromGallery() {
+
+        checkPermissions()
+
+        if (!canSelectImage) {
+            requestPermissions()
+            return
+        }
+
         val intent = Intent(Intent.ACTION_PICK)
         intent.type = "image/*"
         startActivityForResult(intent, 303)
@@ -1112,6 +950,13 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
     var currentPhotoPath = ""
     private fun takePhoto() {
+
+        checkPermissions()
+
+        if (!canTakePicture) {
+            requestPermissions()
+            return
+        }
 
         Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
             // Ensure that there's a camera activity to handle the intent
@@ -1158,7 +1003,224 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         TODO("Not yet implemented")
     }
 
+    private val playerEventListener = object : Player.EventListener {
+        override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
+            Log.e("STATE", "onPlayerStateChanged -> $playbackState")
+            when (playbackState) {
+                Player.STATE_BUFFERING -> {
+                    Log.e("state", "STATE_BUFFERING")
+                    loading.visibility = VISIBLE
+                }
+                Player.STATE_IDLE -> {
+                    Log.e("state", "STATE_IDLE")
+                    loading.visibility = VISIBLE
+                }
+                Player.STATE_READY -> {
+                    Log.e("state", "STATE_READY")
+                    loading.visibility = GONE
+                }
+                else -> {
+                    Log.e("state", playbackState.toString())
+                    loading.visibility = GONE
+                }
+            }
 
+            playPauseButton.visibility = if (loading.visibility == VISIBLE) GONE else VISIBLE
+            playPauseButton.setImageDrawable(if (player!!.isPlaying) pauseImage else playImage)
+        }
+    }
+
+
+    private val mSessionManagerListener = object : SessionManagerListener<CastSession> {
+        override fun onSessionStarted(session: CastSession?, sessionId: String?) {
+            currentPlayerType = PlayerType.CAST
+            notifyCastExoPlayer()
+
+            Log.e("tag", "onSessionStarted")
+            loadingCast = false
+            updateHomeScreen()
+            player?.playWhenReady = false
+            remoteMediaClient = session!!.remoteMediaClient
+
+            if (currentSourceType == SourceType.VIDEO) {
+                remoteMediaClient.load(mediaQueueData.items!![1].media, true)
+            } else {
+                remoteMediaClient.load(mediaQueueData.items!![0].media, true)
+            }
+
+        }
+
+        override fun onSessionResumed(session: CastSession?, wasSuspended: Boolean) {
+            currentPlayerType = PlayerType.CAST
+            notifyCastExoPlayer()
+
+            loadingCast = false
+            remoteMediaClient = session!!.remoteMediaClient
+
+
+            updateHomeScreen()
+            player?.playWhenReady = false
+            Log.e("tag", "onSessionResumed")
+        }
+
+        override fun onSessionEnded(session: CastSession?, error: Int) {
+            currentPlayerType = PlayerType.LOCAL
+            notifyCastExoPlayer()
+
+            player?.playWhenReady = true
+
+            updateHomeScreen()
+
+            Log.e("tag", "onSessionEnded")
+        }
+
+        override fun onSessionResumeFailed(p0: CastSession?, p1: Int) {
+            loadingCast = false
+            currentPlayerType = PlayerType.LOCAL
+            notifyCastExoPlayer()
+            updateHomeScreen()
+            player?.playWhenReady = true
+            Log.e("tag", "onSessionResumeFailed")
+        }
+
+        override fun onSessionSuspended(p0: CastSession?, p1: Int) {
+            Log.e("tag", "onSessionSuspended")
+            loadingCast = false
+            currentPlayerType = PlayerType.LOCAL
+            notifyCastExoPlayer()
+        }
+
+        override fun onSessionStarting(p0: CastSession?) {
+            loadingCast = true
+            currentPlayerType = PlayerType.CAST
+            notifyCastExoPlayer()
+            updateHomeScreen()
+            player?.playWhenReady = false
+            Log.e("tag", "onSessionStarting")
+        }
+
+        override fun onSessionResuming(p0: CastSession?, p1: String?) {
+            Log.e("tag", "onSessionResuming")
+            loadingCast = true
+            currentPlayerType = PlayerType.CAST
+            notifyCastExoPlayer()
+        }
+
+        override fun onSessionEnding(p0: CastSession?) {
+            Log.e("tag", "onSessionEnding")
+            currentPlayerType = PlayerType.LOCAL
+            notifyCastExoPlayer()
+        }
+
+        override fun onSessionStartFailed(p0: CastSession?, p1: Int) {
+            Log.e("tag", "onSessionStartFailed")
+            currentPlayerType = PlayerType.LOCAL
+            notifyCastExoPlayer()
+        }
+    }
+
+    private val onCurrentPlayerTypeListener = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            currentPlayerType = if (intent!!.getBooleanExtra("source", false))
+                PlayerType.LOCAL
+            else PlayerType.CAST
+
+            updateHomeScreen()
+
+        }
+
+    }
+
+
+    private val panelStateListener = object : SlidingUpPanelLayout.PanelSlideListener {
+        override fun onPanelSlide(p: View?, slideOffset: Float) {
+
+        }
+
+        override fun onPanelStateChanged(
+            panel: View?,
+            previousState: SlidingUpPanelLayout.PanelState?,
+            newState: SlidingUpPanelLayout.PanelState?
+        ) {
+
+            if (newState == SlidingUpPanelLayout.PanelState.EXPANDED) {
+                setChatHeight(height - 50)
+                panelExpanded = true
+
+            }
+
+            if (newState == SlidingUpPanelLayout.PanelState.COLLAPSED) {
+                setChatHeight(height / 3)
+                panelExpanded = false
+
+            }
+
+
+        }
+
+    }
+
+    private val onServiceConnectionListener = object : ServiceConnection {
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            Log.e("TAG", "Service disconected")
+            finish()
+        }
+
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            if (service is ExoplayerService.ExoServiceBinder) {
+                player = service.getExoPlayerInstance()
+                playerView.player = player
+                player?.addMetadataOutput(metadataOutput)
+                player?.addListener(playerEventListener)
+            }
+        }
+    }
+
+    private var lastMetadata = ""
+    private val metadataOutput = MetadataOutput {
+
+        if (lastMetadata == it.toString()) return@MetadataOutput
+        lastMetadata = it.toString()
+        Log.e("METADATA", it.toString())
+        programmHelper.refresh()
+
+        for (i in 0 until it.length()) {
+            val entry = it.get(i)
+            if (entry is IcyInfo) {
+
+                val splitted = entry.title!!.split("-")
+
+                songName = util.getDefault(Default.SONG_NAME)
+                artistName = util.getDefault(Default.ARTIST_NAME)
+
+                if (splitted.size == 2) {
+                    songName = splitted[1].trim()
+                    artistName = splitted[0].trim()
+                }
+
+
+                if (util.isPortadaFija()) {
+                    util.downloadImage(util.getDefault(Default.ARTWORK))
+                } else {
+
+                    if (util.showProgramImages() && currentProgram != null)
+                        util.downloadImage(currentProgram!!.image)
+                    else
+                        util.getArtwork(songName, artistName)
+                }
+
+                if (currentProgram != null) {
+                    songName = currentProgram!!.title
+                    artistName = currentProgram!!.locutor
+                }
+
+                updateHomeScreen()
+
+            }
+        }
+        updateHomeScreen()
+    }
 }
 
 class DrawableAlwaysCrossFadeFactory : TransitionFactory<Drawable> {

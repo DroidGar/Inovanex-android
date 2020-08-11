@@ -3,19 +3,36 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
+    lintOptions {
+        checkReleaseBuilds true
+        // Or, if you prefer, you can continue to check for errors in release builds,
+        // but continue the build even when errors are found:
+        abortOnError false
+    }
+    signingConfigs {
+        release {
+            storeFile file('/Users/eduardoholzmann/Develop/Android/Radio2/app/aspen/key.jks')
+            storePassword '1q2w3e'
+            keyAlias 'inovanexpush'
+            keyPassword '1q2w3e'
+        }
+    }
     compileSdkVersion 29
     buildToolsVersion "29.0.2"
 
     defaultConfig {
-        applicationId "com.emperador.inovanex"
+        applicationId "com.inovanex"
         minSdkVersion 21
         targetSdkVersion 29
-        versionCode 2
-        versionName "1.1"
+        versionCode 81
+        versionName "6.0.0"
+
+        resValue "string", "app_name", "Inovanex Demo"
 
         buildConfigField "int", "id", "4"
         buildConfigField "int", "splash", "0"
         buildConfigField "String", "name", "\"Inovanex Radio\""
+        buildConfigField "String", "host", "\"https://apps.instream.audio\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -24,12 +41,26 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    flavorDimensions "version"
+    productFlavors {
+        aspen {
+            dimension "version"
+            resValue "string", "app_name", "Aspen"
+            applicationId "fmaspen.radio"
+            buildConfigField "int", "id", "10"
+            buildConfigField "int", "splash", "0"
+            buildConfigField "String", "name", "\"Aspen\""
+            buildConfigField "String", "host", "\"https://panel.instream.audio\""
+        }
     }
 
 
@@ -39,7 +70,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.appcompat:appcompat:1.1.0'
-    implementation 'androidx.core:core-ktx:1.2.0'
+    implementation 'androidx.core:core-ktx:1.3.1'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation 'com.android.volley:volley:1.1.1'
 
@@ -56,10 +87,10 @@ dependencies {
 
     implementation "androidx.cardview:cardview:1.0.0"
 
-    implementation 'com.google.firebase:firebase-auth:19.3.1'
-    implementation 'com.google.firebase:firebase-messaging:20.2.0'
+    implementation 'com.google.firebase:firebase-auth:19.3.2'
+    implementation 'com.google.firebase:firebase-messaging:20.2.4'
 
-    implementation 'com.google.android.gms:play-services-auth:18.0.0'
+    implementation 'com.google.android.gms:play-services-auth:18.1.0'
     implementation 'com.facebook.android:facebook-android-sdk:5.0.1'
 
     implementation 'com.github.nkzawa:socket.io-client:0.6.0'
@@ -71,10 +102,10 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 
     // Recommended: Add the Firebase SDK for Google Analytics.
-    implementation 'com.google.firebase:firebase-analytics:17.4.3'
+    implementation 'com.google.firebase:firebase-analytics:17.4.4'
 
     // Add the Firebase Crashlytics SDK.
-    implementation 'com.google.firebase:firebase-crashlytics:17.0.1'
+    implementation 'com.google.firebase:firebase-crashlytics:17.1.1'
 
     implementation project(path: ':button')
 }

@@ -90,7 +90,7 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
         val query = "$song $artist"
 
         val path = "$host/inovanex.com/api/v1/cover/get?id=${BuildConfig.id}"
-        Log.i("EmperadorMusicservice", "getArtwork -> $path")
+        Log.i("Utilities", "getArtwork -> $path")
         val queue = Volley.newRequestQueue(context)
         // Request a string response from the provided URL.
         val stringRequest = JsonObjectRequest(
@@ -114,7 +114,7 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
             },
             Response.ErrorListener {
                 downloadImage(getDefault(Default.ARTWORK))
-                it.printStackTrace()
+                Log.i("Utilities", "getArtwork -> fallo en obetener caratula")
             })
 
         // Add the request to the RequestQueue.
@@ -128,7 +128,8 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
 
     }
 
-    public fun downloadImage(path: String) {
+    fun downloadImage(path: String) {
+        Log.e("IMAGE","downloadImage -> $path");
         val queue = Volley.newRequestQueue(context)
 
         val stringRequest = ImageRequest(path,

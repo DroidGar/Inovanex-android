@@ -122,7 +122,8 @@ class TriviaActivity : AppCompatActivity(), TriviaFragment.OnOptionSelected {
 
         val startTime = triviaGroup.getString("start_time")
         val endTime = triviaGroup.getString("end_time")
-        val validText = "${getString(R.string.valido)} $startTime ${getString(R.string.al)} $endTime"
+        val validText =
+            "${getString(R.string.valido)} $startTime ${getString(R.string.al)} $endTime"
 
         valid.text = validText
 
@@ -137,11 +138,14 @@ class TriviaActivity : AppCompatActivity(), TriviaFragment.OnOptionSelected {
         viewPager.adapter = TriviaPagerAdapter(supportFragmentManager, triviaGroup, this)
     }
 
-    override fun onOptionSelected(triviaId: Int, optionId: Long) {
+    override fun onOptionSelected(triviaId: Int, optionId: Long, name: String, image: String) {
         val nextPosition = getNextPossibleItemIndex()
 
         // Notify about selection to server
-        notifyServerAboutSelection(triviaId, optionId.toInt())
+        notifyServerAboutSelection(
+            triviaId, optionId.toInt(), name,
+            image
+        )
 
         // check if last trivia, then go back or show results
         if (nextPosition == -1) {
@@ -153,9 +157,14 @@ class TriviaActivity : AppCompatActivity(), TriviaFragment.OnOptionSelected {
 
     }
 
-    private fun notifyServerAboutSelection(triviaId: Int, optionId: Int) {
+    private fun notifyServerAboutSelection(
+        triviaId: Int,
+        optionId: Int,
+        name: String,
+        image: String
+    ) {
 
-        repository.notifySelection(triviaId, optionId, object : NetWorkListener {})
+        repository.notifySelection(triviaId, optionId, name, image, object : NetWorkListener {})
 
     }
 

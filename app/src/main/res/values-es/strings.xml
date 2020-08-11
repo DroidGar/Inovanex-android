@@ -1,8 +1,4 @@
 <resources>
-    <string name="app_name">Inovanex</string>
-
-    <string name="facebook_app_id">546945202825468</string>
-    <string name="fb_login_protocol_scheme">fb546945202825468</string>
     <string name="chrome_cast">Chrome Cast</string>
     <string name="menu">Menu</string>
     <string name="playback_channel_name">channle name</string>
@@ -43,6 +39,7 @@
     <string name="siguiente_pregunta">Siguiente pregunta</string>
     <string name="comenta">comenta</string>
     <string name="login">Ingresar</string>
+    <string name="cargando">BUFFERING…</string>
 
     <string name="press_twice">Presiona ATRÁS otra vez para salir</string>
 </resources>

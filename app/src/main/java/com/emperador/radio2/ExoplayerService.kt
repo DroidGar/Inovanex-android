@@ -435,7 +435,7 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
 
     private val playerEventListener = object : Player.EventListener {
         override fun onPlayerError(error: ExoPlaybackException) {
-            Log.e("TAG", error.message.toString())
+            Log.e("TAG_EVENT", error.message.toString())
 
             if (error.message.toString() == "com.google.android.exoplayer2.source.BehindLiveWindowException") {
                 player.prepare(mediaSources)
@@ -454,6 +454,9 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
                 }
             }
 
+            if (error.message.toString() == "com.google.android.exoplayer2.upstream.HttpDataSource\$HttpDataSourceException: Unable to connect") {
+                Log.e("TAG_EVENT", "Sin internet")
+            }
         }
 
         override fun onPositionDiscontinuity(reason: Int) {

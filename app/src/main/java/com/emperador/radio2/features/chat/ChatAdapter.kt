@@ -112,10 +112,11 @@ class ChatAdapter(private var messages: JSONArray, val context: Activity) :
 
 //            itemView.message.text = "\uD83D\uDE00"
 
-            Glide.with(context)
-                .load(message.getString("image"))
-                .apply(RequestOptions.circleCropTransform())
-                .into(itemView.image)
+            if (message.has("image"))
+                Glide.with(context)
+                    .load(message.getString("image"))
+                    .apply(RequestOptions.circleCropTransform())
+                    .into(itemView.image)
 
             if (message.getInt("type") == 4) {
                 val color = util.getPrimaryColor()

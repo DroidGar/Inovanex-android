@@ -28,29 +28,32 @@ class SocketController(
 ) {
 
     private var user: FirebaseUser? = null
-    private lateinit var mSocket: Socket
+    private var mSocket: Socket? = null
     private var room = ""
 
     fun configure() {
+        disconnect()
         listener.onConnecting()
         val url = chatConfig.getString("url")
         room = chatConfig.getString("room")
+
         configureSocket(url)
         registerListeners()
 
     }
 
     fun connect() {
-            mSocket.connect()
+        mSocket?.connect()
     }
 
     fun disconnect() {
-        mSocket.off("message")
-        mSocket.off("total-users")
-        mSocket.off("unauthorized")
-        mSocket.off("disconnect")
-        mSocket.off("connect")
-        mSocket.disconnect()
+        if (mSocket == null) return
+        mSocket?.off("message")
+        mSocket?.off("total-users")
+        mSocket?.off("unauthorized")
+        mSocket?.off("disconnect")
+        mSocket?.off("connect")
+        mSocket?.disconnect()
 
     }
 
@@ -60,19 +63,19 @@ class SocketController(
     }
 
     private fun registerListeners() {
-        mSocket.on("message", onNewMessage)
-        mSocket.on("total-users", onTotalUsers)
-        mSocket.on("unauthorized", onUnauthorized)
-        mSocket.on("disconnect", onDisconnect)
-        mSocket.on("connect", onConnected)
+        mSocket?.on("message", onNewMessage)
+        mSocket?.on("total-users", onTotalUsers)
+        mSocket?.on("unauthorized", onUnauthorized)
+        mSocket?.on("disconnect", onDisconnect)
+        mSocket?.on("connect", onConnected)
     }
 
     fun sendMessage(json: JSONObject) {
-        mSocket.emit("message", json)
+        mSocket?.emit("message", json)
     }
 
     fun sendFile(json: JSONObject) {
-        mSocket.emit("file", json)
+        mSocket?.emit("file", json)
     }
 
     fun joinRoom() {
@@ -94,8 +97,7 @@ class SocketController(
         _user.put("user", data)
 
 
-
-        mSocket.emit("auth", _user)
+        mSocket?.emit("auth", _user)
     }
 
     private val onNewMessage = Emitter.Listener { args ->

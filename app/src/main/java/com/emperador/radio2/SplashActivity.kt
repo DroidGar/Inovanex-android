@@ -7,6 +7,8 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.View.GONE
+import android.view.View.VISIBLE
 import android.view.WindowManager
 import android.widget.Toast
 import com.android.volley.Request
@@ -39,6 +41,8 @@ class SplashActivity : AppCompatActivity(), Player.EventListener {
         )
         setContentView(R.layout.activity_splash)
 
+        noInternet.visibility = GONE
+        container.visibility = VISIBLE
 
         id = BuildConfig.id
         val splash_type = BuildConfig.splash
@@ -60,14 +64,19 @@ class SplashActivity : AppCompatActivity(), Player.EventListener {
             }
         }
 
+        retry.setOnClickListener {
+            noInternet.visibility = GONE
+            container.visibility = VISIBLE
+            downloadConfig()
+        }
     }
 
     private fun setUpFullImage() {
-        fullImage.visibility = View.VISIBLE
+        fullImage.visibility = VISIBLE
     }
 
     private fun setUpVideo() {
-        video.visibility = View.VISIBLE
+        video.visibility = VISIBLE
 
         val dataSpec = DataSpec(Uri.parse("asset:///splash.mp4"))
 
@@ -96,7 +105,7 @@ class SplashActivity : AppCompatActivity(), Player.EventListener {
     private fun downloadConfig() {
 
         val queue = Volley.newRequestQueue(this)
-        val url = "https://apps.instream.audio/api/appConfig/$id"
+        val url = "${BuildConfig.host}/api/appConfig/$id"
         Log.e("config", url)
 
         val stringRequest = JsonObjectRequest(
@@ -108,7 +117,8 @@ class SplashActivity : AppCompatActivity(), Player.EventListener {
             },
             Response.ErrorListener {
                 it.printStackTrace()
-                Toast.makeText(this, "Falló en bajar la configuración", Toast.LENGTH_SHORT).show()
+                noInternet.visibility = VISIBLE
+                container.visibility = GONE
             })
 
         stringRequest.setShouldCache(false)

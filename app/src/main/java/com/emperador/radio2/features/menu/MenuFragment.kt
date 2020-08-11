@@ -56,7 +56,7 @@ class MenuFragment : Fragment() {
 
         util = Utilities(context!!, null)
 
-
+        if(util.getVideoQualities().length() == 0) view.options.visibility = GONE
 
         val sponsors = util.radio.getJSONArray("sponsors")
 

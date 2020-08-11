@@ -32,7 +32,7 @@ class TriviaResultActivity : AppCompatActivity() {
         val wrong = intent.getIntExtra("wrong", 0)
 
         mtitle.text = tl
-        success.text = "$correct ${R.string.correctas}"
-        fail.text = "$wrong ${R.string.incorrectas}"
+        success.text = "$correct ${getString(R.string.correctas)}"
+        fail.text = "$wrong ${getString(R.string.incorrectas)}"
     }
 }

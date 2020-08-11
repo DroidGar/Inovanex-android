@@ -11,13 +11,6 @@ import com.emperador.radio2.core.error.Error
 import com.emperador.radio2.core.utils.Either
 import com.google.firebase.auth.FirebaseUser
 
-enum class Api(var value: String) {
-
-    HOST("https://apps.instream.audio")
-
-}
-
-
 class Network(private val context: Context, private val user: FirebaseUser) : NetworkContract() {
 
 
@@ -27,7 +20,6 @@ class Network(private val context: Context, private val user: FirebaseUser) : Ne
 
         val stringRequest = object : JsonObjectRequest(Method.GET, url, null,
             Response.Listener<JSONObject> { response ->
-                Log.e("llega", response.toString())
                 listener.onNetworkListener(Either.Right(response))
             },
             Response.ErrorListener {
@@ -47,7 +39,7 @@ class Network(private val context: Context, private val user: FirebaseUser) : Ne
         val queue = Volley.newRequestQueue(context)
 
         val stringRequest = object : JsonObjectRequest(Method.POST,
-            url + "?triviaId=${params.getInt("triviaId")}&optionId=${params.getInt("optionId")}",
+            url + "?triviaId=${params.getInt("triviaId")}&optionId=${params.getInt("optionId")}&name=${params.getString("name")}&image=${params.getString("image")}",
             null,
             Response.Listener<JSONObject> { response ->
                 listener.onNetworkListener(Either.Right(response))
@@ -57,13 +49,6 @@ class Network(private val context: Context, private val user: FirebaseUser) : Ne
             }) {
             override fun getHeaders(): Map<String, String> {
                 return buildHeaders()
-            }
-
-            override fun getParams(): MutableMap<String, String> {
-                val pm = mutableMapOf<String, String>()
-                pm["triviaId"] = params.getInt("triviaId").toString()
-                pm["optionId"] = params.getInt("optionId").toString()
-                return pm
             }
         }
 

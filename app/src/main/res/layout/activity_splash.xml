@@ -6,11 +6,56 @@
     android:layout_height="match_parent"
     tools:context=".SplashActivity">
 
+    <LinearLayout
+        android:id="@+id/noInternet"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageView
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:src="@drawable/ic_nowifi"
+            android:tint="#FFF" />
+
+        <TextView
+            android:gravity="center"
+            android:layout_margin="20dp"
+            android:textSize="45sp"
+            android:fontFamily="@font/proxima_semibold"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="¡No tenés conexión!"
+            android:textColor="#FFFFFF" />
+
+        <TextView
+            android:gravity="center"
+            android:layout_margin="50dp"
+            android:textSize="20sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/proxim"
+            android:text="En este momento no estás conectado a ninguna red"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/retry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingEnd="50dp"
+            android:paddingStart="50dp"
+            android:text="REINTENTAR"/>
+
+
+    </LinearLayout>
+
     <FrameLayout
         android:id="@+id/container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#000000">
+        android:background="#000000"
+        android:visibility="gone">
 
         <ImageView
             android:layout_width="wrap_content"
@@ -19,13 +64,13 @@
             android:src="@mipmap/ic_launcher" />
 
         <ImageView
-            android:visibility="gone"
             android:id="@+id/fullImage"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center"
             android:scaleType="centerCrop"
-            android:src="@drawable/splash" />
+            android:src="@drawable/splash"
+            android:visibility="gone" />
 
         <com.google.android.exoplayer2.ui.PlayerView
             android:id="@+id/video"

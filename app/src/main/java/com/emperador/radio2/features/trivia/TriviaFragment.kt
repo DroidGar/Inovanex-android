@@ -16,6 +16,7 @@ import com.emperador.inovanex.features.trivia.TriviasAdapter
 import com.emperador.radio2.R
 import com.emperador.radio2.core.utils.CountDownAnimation
 import com.emperador.radio2.core.utils.Utilities
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.android.synthetic.main.fragment_trivia.view.*
 import kotlinx.android.synthetic.main.trivia_option_row.view.*
 import org.json.JSONArray
@@ -40,7 +41,7 @@ class TriviaFragment(val group: JSONObject, val position: Int, val listener: OnO
     private var flagGoNext = false
 
     interface OnOptionSelected {
-        fun onOptionSelected(triviaId: Int, optionId: Long)
+        fun onOptionSelected(triviaId: Int, optionId: Long, name: String, image: String)
     }
 
     override fun onResume() {
@@ -51,7 +52,6 @@ class TriviaFragment(val group: JSONObject, val position: Int, val listener: OnO
         flagGoNext = false
         madapter.notifyDataSetChanged()
     }
-
 
 
     @SuppressLint("SetTextI18n")
@@ -89,6 +89,10 @@ class TriviaFragment(val group: JSONObject, val position: Int, val listener: OnO
         val time = group.getInt("time")
         miainView.timer.text = time.toString() + "seg"
 
+        val mAuth = FirebaseAuth.getInstance()
+        val name = mAuth.currentUser?.displayName
+        val image = mAuth.currentUser?.photoUrl
+
         next.setOnClickListener {
 
 
@@ -114,7 +118,7 @@ class TriviaFragment(val group: JSONObject, val position: Int, val listener: OnO
 
             if (flagGoNext) {
                 val optionId = selectedOption?.getLong("id") ?: 0L
-                listener.onOptionSelected(trivia.getInt("id"), optionId)
+                listener.onOptionSelected(trivia.getInt("id"), optionId, name!!, image.toString())
             }
 
             flagGoNext = true
