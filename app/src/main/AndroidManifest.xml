@@ -87,9 +87,10 @@
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.emperador.inovanex.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
+            android:authorities="@string/authorities"
+            android:enabled="true"
+            android:grantUriPermissions="true"
+            android:exported="false">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/local_paths" />

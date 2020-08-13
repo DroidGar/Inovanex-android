@@ -213,6 +213,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
         playPauseButton.setOnClickListener {
 
+            Log.e("tag", player.toString());
             player?.playWhenReady = !player!!.playWhenReady
 
         }
@@ -282,24 +283,31 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         metadata.addImage(WebImage(Uri.parse(util.getDefault(Default.ARTWORK))))
         metadata.addImage(WebImage(Uri.parse(util.getDefault(Default.ARTWORK))))
 
-        val mediaInfoAudio = Builder("https://cdn2.instream.audio/:9243/stream")
+        val mediaInfoAudio = Builder(util.getAudioSources()["audio-0"])
             .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
             .setContentType(mimeAudio)
             .setMetadata(metadata)
             .build()
 
-        val mediaInfoVideo =
-            Builder("https://59db7e671a1ad.streamlock.net:443/1280demo/mp4:1280demo_360p/playlist.m3u8")
+        val hasVideo = util.getVideoSources().isNotEmpty()
+
+
+        val castQueueList = mutableListOf<MediaQueueItem>()
+        val audio = MediaQueueItem.Builder(mediaInfoAudio).build()
+        castQueueList.add(0, audio)
+
+        if (hasVideo) {
+            val mediaInfoVideo = Builder(util.getVideoSources()["video-0"])
                 .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
                 .setContentType(mimeVideo)
                 .setMetadata(metadata)
                 .build()
 
-        val castQueueList = mutableListOf<MediaQueueItem>()
-        val audio = MediaQueueItem.Builder(mediaInfoAudio).build()
-        val video = MediaQueueItem.Builder(mediaInfoVideo).build()
-        castQueueList.add(0, audio)
-        castQueueList.add(1, video)
+            val video = MediaQueueItem.Builder(mediaInfoVideo).build()
+
+            castQueueList.add(1, video)
+
+        }
 
         mediaQueueData = MediaQueueData.Builder()
             .setItems(castQueueList)
@@ -638,47 +646,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     private lateinit var audioFocusRequest: AudioFocusRequest
     private var recorder: MediaRecorder? = null
 
-    private fun startRecording() {
-
-        checkPermissions()
-
-        if (!canRecordAudio) {
-            requestPermissions()
-            return
-        }
-
-        val res = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            am.requestAudioFocus(audioFocusRequest)
-        } else {
-            TODO("VERSION.SDK_INT < O")
-        }
-        try {
-            val destPath: String = MainActivity@this.getExternalFilesDir(null)!!.absolutePath
-            fileName = "${destPath}/audiorecordtest.3gp"
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-
-        File(fileName)
-        recorder = MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-            setOutputFile(fileName)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-
-            try {
-                prepare()
-            } catch (e: IOException) {
-                Log.e("tag", "prepare() failed")
-            }
-
-            start()
-            startRecordTime = System.nanoTime()
-        }
-
-    }
-
 
     private fun cancelRecording() {
 
@@ -965,36 +932,72 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
                 val photoFile: File? = try {
                     createImageFile()
                 } catch (ex: IOException) {
-                    // Error occurred while creating the File
                     Toast.makeText(this, "No se pudo acceder a la camara", LENGTH_SHORT).show()
                     return
                 }
                 // Continue only if the File was successfully created
+                Log.e("provider", BuildConfig.provider)
                 photoFile?.also {
-                    val photoURI: Uri = FileProvider.getUriForFile(
-                        this,
-                        "com.emperador.inovanex.fileprovider",
-                        it
-                    )
+                    val photoURI: Uri =
+                        FileProvider.getUriForFile(this, getString(R.string.authorities), it)
                     takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
-                    startActivityForResult(takePictureIntent, PermissionHandler.REQUEST_TAKE_PHOTO)
+                    startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO)
                 }
             }
         }
     }
 
-    @Throws(IOException::class)
+    private fun startRecording() {
+
+        checkPermissions()
+
+        if (!canRecordAudio) {
+            requestPermissions()
+            return
+        }
+
+        val res = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            am.requestAudioFocus(audioFocusRequest)
+        } else {
+            TODO("VERSION.SDK_INT < O")
+        }
+
+        createAudioFile()
+
+        recorder = MediaRecorder().apply {
+            setAudioSource(MediaRecorder.AudioSource.MIC)
+            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+            setOutputFile(fileName)
+            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+
+            try {
+                prepare()
+            } catch (e: IOException) {
+                Log.e("tag", "prepare() failed")
+            }
+
+            start()
+            startRecordTime = System.nanoTime()
+        }
+
+    }
+
+    private fun timestamp(): String {
+        return SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date());
+    }
+
+    private fun createAudioFile(): File {
+        val time: String = timestamp()
+        val dir: File = getExternalFilesDir(Environment.DIRECTORY_PODCASTS)!!
+        return File.createTempFile("AUDIO_${time}_", ".3gp", dir).apply {
+            fileName = absolutePath
+        }
+    }
+
     private fun createImageFile(): File {
-        // Create an image file name
-        val timeStamp: String =
-            SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val storageDir: File = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
-        return File.createTempFile(
-            "JPEG_${timeStamp}_", /* prefix */
-            ".jpg", /* suffix */
-            storageDir /* directory */
-        ).apply {
-            // Save a file: path for use with ACTION_VIEW intents
+        val time: String = timestamp()
+        val dir: File = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
+        return File.createTempFile("JPEG_${time}_", ".jpg", dir).apply {
             currentPhotoPath = absolutePath
         }
     }
@@ -1013,7 +1016,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
                 }
                 Player.STATE_IDLE -> {
                     Log.e("state", "STATE_IDLE")
-                    loading.visibility = VISIBLE
+                    loading.visibility = GONE
                 }
                 Player.STATE_READY -> {
                     Log.e("state", "STATE_READY")

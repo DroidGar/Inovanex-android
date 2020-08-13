@@ -219,7 +219,7 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
         notificationManager.setFastForwardIncrementMs(0)
         // omit rewind action by setting the increment to zero
         notificationManager.setRewindIncrementMs(0)
-        notificationManager.setUseStopAction(true)
+        notificationManager.setUseStopAction(false)
 
         notificationManager.setMediaSessionToken(mMediaSessionCompat.sessionToken)
 
@@ -230,7 +230,6 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
 
         override fun onNotificationCancelled(notificationId: Int, dismissedByUser: Boolean) {
             stopForeground(true)
-            this@ExoplayerService.onDestroy()
         }
 
         override fun onNotificationStarted(notificationId: Int, notification: Notification) {
