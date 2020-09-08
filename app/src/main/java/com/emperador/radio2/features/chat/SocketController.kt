@@ -3,6 +3,7 @@ package com.emperador.radio2.features.chat
 import android.app.Activity
 import android.util.Log
 import com.github.nkzawa.emitter.Emitter
+import com.github.nkzawa.engineio.client.transports.WebSocket
 import com.github.nkzawa.socketio.client.IO
 import com.github.nkzawa.socketio.client.Socket
 import com.google.firebase.auth.FirebaseAuth
@@ -32,7 +33,6 @@ class SocketController(
     private var room = ""
 
     fun configure() {
-        disconnect()
         listener.onConnecting()
         val url = chatConfig.getString("url")
         room = chatConfig.getString("room")
@@ -43,23 +43,22 @@ class SocketController(
     }
 
     fun connect() {
+        if (mSocket?.connected()!!) return
+        Log.e("socket", "connect")
         mSocket?.connect()
     }
 
     fun disconnect() {
-        if (mSocket == null) return
-        mSocket?.off("message")
-        mSocket?.off("total-users")
-        mSocket?.off("unauthorized")
-        mSocket?.off("disconnect")
-        mSocket?.off("connect")
+        Log.e("socket", "disconnect")
         mSocket?.disconnect()
-
     }
 
 
     private fun configureSocket(url: String) {
-        mSocket = IO.socket(url)
+        val opts = IO.Options()
+        opts.transports = arrayOf(WebSocket.NAME)
+
+        mSocket = IO.socket(url, opts)
     }
 
     private fun registerListeners() {
@@ -68,6 +67,7 @@ class SocketController(
         mSocket?.on("unauthorized", onUnauthorized)
         mSocket?.on("disconnect", onDisconnect)
         mSocket?.on("connect", onConnected)
+        mSocket?.on(Socket.EVENT_ERROR, onError)
     }
 
     fun sendMessage(json: JSONObject) {
@@ -79,7 +79,7 @@ class SocketController(
     }
 
     fun joinRoom() {
-
+        Log.e("socket", "joinRoom")
         user = FirebaseAuth.getInstance().currentUser
 
         val _user = JSONObject()
@@ -96,15 +96,18 @@ class SocketController(
         data.put("channel", room)
         _user.put("user", data)
 
-
         mSocket?.emit("auth", _user)
     }
 
     private val onNewMessage = Emitter.Listener { args ->
-//        Log.e("socket", args[0].toString())
-
         val data = args[0] as JSONObject
         activity.runOnUiThread { listener.onNewMessage(data) }
+    }
+
+
+    private val onError = Emitter.Listener { args ->
+
+        Log.e("socket", "onError ${args[0]}")
 
     }
 
@@ -115,7 +118,7 @@ class SocketController(
     }
 
     private val onUnauthorized = Emitter.Listener { args ->
-
+        Log.e("socket", "onUnauthorized")
         activity.runOnUiThread { listener.onUnauthorized() }
 
     }

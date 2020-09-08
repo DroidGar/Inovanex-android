@@ -3,6 +3,7 @@ package com.emperador.radio2.features.trivia
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import androidx.appcompat.app.AppCompatActivity
@@ -40,6 +41,8 @@ class TriviaActivity : AppCompatActivity(), TriviaFragment.OnOptionSelected {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_trivia)
+        Log.e("lifecicle", "onCreate()")
+
 
         util = Utilities(this, null)
 
@@ -187,6 +190,7 @@ class TriviaActivity : AppCompatActivity(), TriviaFragment.OnOptionSelected {
         intent.putExtra("wrong", wrong)
         intent.flags = intent.flags or Intent.FLAG_ACTIVITY_NO_HISTORY
         startActivity(intent)
+        finish()
     }
 
 

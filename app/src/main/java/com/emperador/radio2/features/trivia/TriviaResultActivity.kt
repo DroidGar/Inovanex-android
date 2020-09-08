@@ -1,9 +1,8 @@
 package com.emperador.radio2.features.trivia
 
-import android.annotation.SuppressLint
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.emperador.radio2.MainActivity
 import com.emperador.radio2.R
@@ -23,7 +22,7 @@ class TriviaResultActivity : AppCompatActivity() {
         btn.setBackgroundColor(util.getPrimaryColor())
 
         close2.setOnClickListener {
-            startActivity(Intent(this, MainActivity::class.java))
+            onBackPressed()
         }
 
 
@@ -35,4 +34,6 @@ class TriviaResultActivity : AppCompatActivity() {
         success.text = "$correct ${getString(R.string.correctas)}"
         fail.text = "$wrong ${getString(R.string.incorrectas)}"
     }
+
+
 }

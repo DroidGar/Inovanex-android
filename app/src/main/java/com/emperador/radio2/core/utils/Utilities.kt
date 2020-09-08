@@ -15,7 +15,6 @@ import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.ImageRequest
-import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.emperador.radio2.BuildConfig
@@ -27,16 +26,17 @@ enum class Default {
     SONG_NAME,
     ARTIST_NAME,
     ARTWORK,
+    CAST_BACK,
+    CAST_LOGO,
 }
 
 class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
 
     val config: JSONObject
     val radio: JSONObject
-    val prefs: SharedPreferences
+    private val prefs: SharedPreferences = context.getSharedPreferences("preferences_emperador", 0)
 
     init {
-        prefs = context.getSharedPreferences("preferences_emperador", 0)
         val confString = prefs.getString("configuration", "")
         config = JSONObject(confString!!)
         radio = config.getJSONObject("radio")
@@ -47,15 +47,20 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
         fun onArtworkChange(bitmap: Bitmap)
     }
 
+    fun getDefaultLaunchType(): Boolean {
+        return config.getBoolean("start_on_video")
+    }
 
     fun getDefault(default: Default): String {
         val defaults = radio.getJSONObject("defaults")
-
         return when (default) {
             Default.SONG_NAME -> defaults.getString("song_name")
             Default.ARTIST_NAME -> defaults.getString("artist_name")
             Default.ARTWORK -> defaults.getString("artwork")
+            Default.CAST_BACK -> if (defaults.has("chcast_background")) defaults.getString("chcast_background") else "no existe"
+            Default.CAST_LOGO -> if (defaults.has("chcast_logo")) defaults.getString("chcast_logo") else "no existe"
         }
+
     }
 
     fun getLogo(): String {
@@ -76,7 +81,7 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
         val videoSources = mutableMapOf<String, String>()
         for (i in 0 until videos.length()) {
             val data = videos.getJSONObject(i)
-            videoSources[data.getString("name")] = data.getString("url")
+            videoSources["video-$i"] = data.getString("url")
         }
         return videoSources
 
@@ -87,7 +92,6 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
 
         val host = "https://spotify.instream.audio"
 
-        val query = "$song $artist"
 
         val path = "$host/inovanex.com/api/v1/cover/get?id=${BuildConfig.id}"
         Log.i("Utilities", "getArtwork -> $path")
@@ -129,7 +133,7 @@ class Utilities(var context: Context, var artWorkListener: ArtworkListener?) {
     }
 
     fun downloadImage(path: String) {
-        Log.e("IMAGE","downloadImage -> $path");
+        Log.e("IMAGE", "downloadImage -> $path");
         val queue = Volley.newRequestQueue(context)
 
         val stringRequest = ImageRequest(path,

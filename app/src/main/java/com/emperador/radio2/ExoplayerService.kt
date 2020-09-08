@@ -209,7 +209,7 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
 
         notificationManager = PlayerNotificationManager
             .createWithNotificationChannel(
-                this, "channel", R.string.app_name, R.string.app_name, 123,
+                this, "exoplayer", R.string.app_name, R.string.app_name, 123,
                 mediaDescriptionAdapter, notificationListener
             )
 
@@ -255,6 +255,10 @@ class ExoplayerService : Service(), Utilities.ArtworkListener, OnProgramationLis
     }
 
     override fun onDestroy() {
+
+        unregisterReceiver(onSwitchType)
+        unregisterReceiver(onSwitchPlayer)
+        unregisterReceiver(onSwitchVideoQuality)
 
         handler.removeCallbacksAndMessages(null)
         notificationManager.setPlayer(null)

@@ -2,6 +2,7 @@ package com.emperador.radio2.features.chat
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -35,6 +36,13 @@ class ChatAdapter(private var messages: JSONArray, val context: Activity) :
     }
 
     fun add(message: JSONObject) {
+        var add = true
+        for (i in 0 until messages.length()) {
+            val equal = messages[i].toString() == message.toString()
+            if (equal) add = false
+        }
+
+        if (!add) return
         this.messages.put(message)
         notifyDataSetChanged()
 

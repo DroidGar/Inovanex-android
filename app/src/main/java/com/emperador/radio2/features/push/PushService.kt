@@ -9,11 +9,16 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.bumptech.glide.Glide
+import com.emperador.radio2.BuildConfig
 import com.emperador.radio2.MainActivity
 import com.emperador.radio2.R
+import com.google.android.gms.tasks.OnCompleteListener
+import com.google.android.gms.tasks.Task
+import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
@@ -27,12 +32,15 @@ class PushService : FirebaseMessagingService() {
      */
     override fun onNewToken(token: String) {
         Log.e("onNewToken", "Refreshed token: $token")
-
+        FirebaseMessaging.getInstance().subscribeToTopic("${BuildConfig.id}")
+            .addOnCompleteListener { Log.e("TOPIC", "suscripto") }
 
     }
 
     override fun onMessageReceived(p0: RemoteMessage) {
         super.onMessageReceived(p0)
+
+        Log.e("TOPIC", "${p0.data}")
 
         val title = p0.data["title"]
         val detail = p0.data["detail"]
@@ -42,8 +50,7 @@ class PushService : FirebaseMessagingService() {
         //0 abre normal, 1 a la encuesta 2 a los resultados
         val type = p0.data["type"]
 
-        Log.e("image", image)
-        if (image != "") {
+        if (!image.isNullOrEmpty()) {
             val bitmap = Glide.with(this)
                 .asBitmap()
                 .load(image)
@@ -54,7 +61,6 @@ class PushService : FirebaseMessagingService() {
             showPush(title, detail, longDetail, null, link)
         }
     }
-
 
 
     private fun showPush(
@@ -69,7 +75,7 @@ class PushService : FirebaseMessagingService() {
         createNotificationChannel()
         val notificationIntent: Intent
 
-        if (link != "") {
+        if (!link.isNullOrEmpty()) {
             notificationIntent = Intent(Intent.ACTION_VIEW)
             notificationIntent.data = Uri.parse(link)
         } else {
@@ -82,7 +88,7 @@ class PushService : FirebaseMessagingService() {
         val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
 
 
-        val builder = NotificationCompat.Builder(this, "channel")
+        val builder = NotificationCompat.Builder(this, "channel2")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(msg1)
@@ -100,7 +106,7 @@ class PushService : FirebaseMessagingService() {
 
         with(NotificationManagerCompat.from(this)) {
             // notificationId is a unique int for each notification that you must define
-            notify(123, builder.build())
+            notify(32145, builder.build())
         }
     }
 
@@ -108,10 +114,10 @@ class PushService : FirebaseMessagingService() {
         // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is new and not in the support library
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "channel"
-            val descriptionText = "channel"
+            val name = "channel2"
+            val descriptionText = "channel2"
             val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel("channel", name, importance).apply {
+            val channel = NotificationChannel("channel2", name, importance).apply {
                 description = descriptionText
             }
             // Register the channel with the system

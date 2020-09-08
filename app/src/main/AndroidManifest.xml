@@ -55,9 +55,9 @@
             </intent-filter>
         </activity>
 
-        <!--        <meta-data-->
-        <!--            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"-->
-        <!--            android:value="com.google.android.exoplayer2.ext.cast.DefaultCastOptionsProvider" />-->
+<!--                <meta-data-->
+<!--                    android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"-->
+<!--                    android:value="com.google.android.exoplayer2.ext.cast.DefaultCastOptionsProvider" />-->
 
         <meta-data
             android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
@@ -72,8 +72,9 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:host="https://apps.instream.audio"
+                    android:host="https://panel.instream.audio"
                     android:path="/cast-receiver/index.html"
                     android:scheme="https" />
             </intent-filter>

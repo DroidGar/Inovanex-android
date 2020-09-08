@@ -132,6 +132,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
     var height: Int = 0
     var width: Int = 0
+    private var startOnVideo = false
 
     private var doubleBackToExitPressedOnce = false
     var panelExpanded = false
@@ -139,7 +140,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         registerReceiver(
             ConnectivityReceiver(),
             IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
@@ -256,6 +256,17 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
         util.downloadImage(util.getDefault(Default.ARTWORK))
 
+
+    }
+
+    override fun onStart() {
+        super.onStart()
+        bindService()
+        socket.connect()
+
+        registerReceiver(onCurrentPlayerTypeListener, IntentFilter(ExoplayerService.SWITCH_SOURCE))
+
+
     }
 
 
@@ -274,14 +285,17 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
             MediaMetadata.KEY_ALBUM_ARTIST,
             util.getDefault(Default.ARTIST_NAME)
         )
-        metadata.putString(
-            MediaMetadata.KEY_ALBUM_TITLE,
-            "EN VIVO"
-        )
+//        metadata.putString(
+//            MediaMetadata.KEY_ALBUM_TITLE,
+//            "Otro dato"
+//        )
 
-        metadata.addImage(WebImage(Uri.parse(util.getDefault(Default.ARTWORK))))
-        metadata.addImage(WebImage(Uri.parse(util.getDefault(Default.ARTWORK))))
-        metadata.addImage(WebImage(Uri.parse(util.getDefault(Default.ARTWORK))))
+        val logo = util.getDefault(Default.CAST_LOGO)
+        val back = util.getDefault(Default.CAST_BACK)
+
+        metadata.addImage(WebImage(Uri.parse(logo)))
+        metadata.addImage(WebImage(Uri.parse(back)))
+        metadata.addImage(WebImage(Uri.parse(back)))
 
         val mediaInfoAudio = Builder(util.getAudioSources()["audio-0"])
             .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
@@ -297,7 +311,8 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         castQueueList.add(0, audio)
 
         if (hasVideo) {
-            val mediaInfoVideo = Builder(util.getVideoSources()["video-0"])
+            val videos = util.getVideoSources()
+            val mediaInfoVideo = Builder(videos["video-0"])
                 .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
                 .setContentType(mimeVideo)
                 .setMetadata(metadata)
@@ -351,6 +366,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
             }
 
             if (doubleBackToExitPressedOnce) {
+                this.onStop()
                 super.onBackPressed()
                 return
             }
@@ -364,7 +380,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         }
     }
 
-
     override fun onResume() {
 
         mSessionManager.addSessionManagerListener(mSessionManagerListener, CastSession::class.java)
@@ -374,13 +389,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
     }
 
-    override fun onPause() {
-        super.onPause()
-        mSessionManager.removeSessionManagerListener(
-            mSessionManagerListener,
-            CastSession::class.java
-        )
-    }
+
 
     private fun setChatHeight(height: Int) {
         val params: ViewGroup.LayoutParams = chatView.layoutParams
@@ -425,12 +434,19 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         }
     }
 
-    override fun onStart() {
-        super.onStart()
-        bindService()
-        socket.connect()
 
-        registerReceiver(onCurrentPlayerTypeListener, IntentFilter(ExoplayerService.SWITCH_SOURCE))
+    override fun onStop() {
+        super.onStop()
+        try {
+            unregisterReceiver(onCurrentPlayerTypeListener)
+            window.decorView.clearFocus()
+            mSessionManager.removeSessionManagerListener(
+                mSessionManagerListener,
+                CastSession::class.java
+            )
+        } catch (e: Exception) {
+
+        }
     }
 
     var canSendChat = true
@@ -443,11 +459,12 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     }
 
     override fun onDestroy() {
-        unbindService()
-        socket.disconnect()
-
-        unregisterReceiver(onCurrentPlayerTypeListener)
-
+        try {
+            unbindService()
+            socket.disconnect()
+            unregisterReceiver(onCurrentPlayerTypeListener)
+        } catch (e: Exception) {
+        }
         super.onDestroy()
     }
 
@@ -673,7 +690,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         recorder = null
     }
 
-
     private fun sendAudio(path: String) {
 
 
@@ -698,7 +714,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
 
     }
-
 
     private fun sendImage(path: String) {
 
@@ -742,7 +757,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
      * */
 
     private fun initChat() {
-
 
         val viewManager = LinearLayoutManager(this).apply {
             stackFromEnd = false
@@ -837,7 +851,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         rv.smoothScrollToPosition(chatAdapter.itemCount - 1)
     }
 
-
     override fun onConnecting() {
     }
 
@@ -852,6 +865,9 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     }
 
     override fun onDisconnect() {
+        chatAdapter.removeAll()
+        chatAdapter.notifyDataSetChanged()
+        Log.e("tag", "onDisconnect")
     }
 
     override fun onUnauthorized() {
@@ -966,9 +982,9 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
         recorder = MediaRecorder().apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            setAudioEncoder(MediaRecorder.AudioEncoder.HE_AAC)
             setOutputFile(fileName)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
 
             try {
                 prepare()
@@ -989,7 +1005,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     private fun createAudioFile(): File {
         val time: String = timestamp()
         val dir: File = getExternalFilesDir(Environment.DIRECTORY_PODCASTS)!!
-        return File.createTempFile("AUDIO_${time}_", ".3gp", dir).apply {
+        return File.createTempFile("AUDIO_${time}_", ".mp3", dir).apply {
             fileName = absolutePath
         }
     }
@@ -1176,6 +1192,12 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
                 playerView.player = player
                 player?.addMetadataOutput(metadataOutput)
                 player?.addListener(playerEventListener)
+
+                startOnVideo = util.getDefaultLaunchType()
+                if (startOnVideo && util.getVideoQualities().length() > 0) {
+                    Log.e("start", "abre en video")
+                    changeMediaSource.performClick()
+                }
             }
         }
     }
@@ -1206,11 +1228,15 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
                 if (util.isPortadaFija()) {
                     util.downloadImage(util.getDefault(Default.ARTWORK))
                 } else {
+                    Log.e("portada", "show ${util.showProgramImages()}, $currentProgram")
+                    if (util.showProgramImages() && currentProgram != null) {
+                        Log.e("portada", currentProgram!!.image)
 
-                    if (util.showProgramImages() && currentProgram != null)
                         util.downloadImage(currentProgram!!.image)
-                    else
+                    } else {
+                        Log.e("portada", "sin portada")
                         util.getArtwork(songName, artistName)
+                    }
                 }
 
                 if (currentProgram != null) {

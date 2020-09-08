@@ -24,8 +24,8 @@ android {
         applicationId "com.inovanex"
         minSdkVersion 21
         targetSdkVersion 29
-        versionCode 84
-        versionName "6.0.3"
+        versionCode 91
+        versionName "6.0.10"
 
         resValue "string", "app_name", "Inovanex Demo"
 
@@ -42,7 +42,6 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }
     }
@@ -64,6 +63,7 @@ android {
             buildConfigField "String", "host", "\"https://panel.instream.audio\""
             buildConfigField "String", "provider", "\"fmaspen.radio.fileprovider\""
             resValue "string", "authorities", "fmaspen.radio.fileprovider"
+            // crear app para tv https://cast.google.com/publish/#/overview
         }
     }
 
@@ -83,7 +83,7 @@ dependencies {
     implementation 'com.google.android.exoplayer:extension-mediasession:2.11.4'
 
     implementation "androidx.mediarouter:mediarouter:1.1.0"
-    implementation 'com.google.android.gms:play-services-cast-framework:18.1.0'
+    implementation 'com.google.android.gms:play-services-cast-framework:19.0.0'
 
     implementation 'com.github.bumptech.glide:glide:4.11.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'

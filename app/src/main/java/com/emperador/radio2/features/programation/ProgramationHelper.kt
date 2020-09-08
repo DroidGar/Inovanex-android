@@ -1,6 +1,7 @@
 package com.emperador.radio2.features.programation
 
 import android.content.Context
+import android.util.Log
 import com.emperador.radio2.features.programation.models.Program
 import com.emperador.radio2.features.programation.models.ProgramDay
 import com.emperador.radio2.features.programation.repositories.ProgramDayRepository
@@ -33,10 +34,9 @@ class ProgramationHelper(val context: Context, val listener: OnProgramationListe
                 it.programms.map { it2 ->
                     val start = stringToDate(it2.startTime)
                     val end = stringToDate(it2.endTime)
-                    if (start.before(nowTime) && end.after(nowTime)) {
+                    if (start.before(nowTime) && (end.after(nowTime) || end.before(start))) {
                         listener.onProgramChange(it, it2)
                     }
-
                 }
             }
         }
