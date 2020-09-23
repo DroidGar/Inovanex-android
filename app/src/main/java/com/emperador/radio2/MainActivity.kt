@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.*
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.media.AudioFocusRequest
@@ -83,6 +84,7 @@ import kotlinx.android.synthetic.main.app_bar.*
 import kotlinx.android.synthetic.main.scene1.*
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -388,7 +390,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         super.onResume()
 
     }
-
 
 
     private fun setChatHeight(height: Int) {
@@ -706,7 +707,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
         val message = JSONObject()
         message.put("type", 2)
-        message.put("message", encoder(path))
+        message.put("message", encoder(path, false))
         message.put("duration", startRecordTime)
         socket.sendFile(message)
 
@@ -729,16 +730,35 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
         val message = JSONObject()
         message.put("type", 3)
-        message.put("message", encoder(path))
+        message.put("message", encoder(path, true))
         socket.sendFile(message)
-
         rv.smoothScrollToPosition(chatAdapter.itemCount - 1)
 
     }
 
-    private fun encoder(filePath: String): String {
+    private fun encoder(filePath: String, resize: Boolean): String {
         val bytes = File(filePath).readBytes()
-        return Base64.encodeToString(bytes, Base64.DEFAULT)
+        val stringImage = Base64.encodeToString(bytes, Base64.DEFAULT)
+        if (!resize) return stringImage
+        return resizeBase64Image(stringImage)!!
+    }
+
+    private fun resizeBase64Image(base64image: String): String? {
+        val encodeByte = Base64.decode(base64image.toByteArray(), Base64.DEFAULT)
+        val options: BitmapFactory.Options = BitmapFactory.Options()
+        options.inPurgeable = true
+        var image: Bitmap = BitmapFactory.decodeByteArray(encodeByte, 0, encodeByte.size, options)
+        if (image.height < 700 && image.width < 700) {
+            return base64image
+        }
+        val width = Integer.valueOf(image.width / 2)
+        val height = Integer.valueOf(image.height / 2)
+        image = Bitmap.createScaledBitmap(image, width, height, false)
+        val baos = ByteArrayOutputStream()
+        image.compress(Bitmap.CompressFormat.PNG, 100, baos)
+        val b: ByteArray = baos.toByteArray()
+        System.gc()
+        return Base64.encodeToString(b, Base64.NO_WRAP)
     }
 
     override fun onArtworkChange(bitmap: Bitmap) {
