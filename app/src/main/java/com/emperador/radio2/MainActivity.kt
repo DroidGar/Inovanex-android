@@ -7,6 +7,7 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.drawable.Drawable
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -31,6 +32,7 @@ import android.widget.Toast.LENGTH_SHORT
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.exifinterface.media.ExifInterface
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.MultiTransformation
@@ -78,6 +80,11 @@ import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.images.WebImage
 import com.google.firebase.auth.FirebaseAuth
 import com.sothree.slidinguppanel.SlidingUpPanelLayout
+import id.zelory.compressor.Compressor
+import id.zelory.compressor.constraint.format
+import id.zelory.compressor.constraint.quality
+import id.zelory.compressor.constraint.resolution
+import id.zelory.compressor.constraint.size
 import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar.*
@@ -90,6 +97,7 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
+import kotlinx.coroutines.*
 
 enum class SourceType {
     AUDIO, VIDEO
@@ -215,7 +223,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
         playPauseButton.setOnClickListener {
 
-            Log.e("tag", player.toString());
+            Log.e("tag", player.toString())
             player?.playWhenReady = !player!!.playWhenReady
 
         }
@@ -736,29 +744,26 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
 
     }
 
-    private fun encoder(filePath: String, resize: Boolean): String {
-        val bytes = File(filePath).readBytes()
-        val stringImage = Base64.encodeToString(bytes, Base64.DEFAULT)
-        if (!resize) return stringImage
-        return resizeBase64Image(stringImage)!!
+    private fun encoder(filePath: String, image: Boolean): String {
+        return if (image) {
+            var file = File(filePath)
+            runBlocking {
+                file = compress(file)
+            }
+            Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
+        } else {
+            val bytes = File(filePath).readBytes()
+            Base64.encodeToString(bytes, Base64.DEFAULT)
+        }
     }
 
-    private fun resizeBase64Image(base64image: String): String? {
-        val encodeByte = Base64.decode(base64image.toByteArray(), Base64.DEFAULT)
-        val options: BitmapFactory.Options = BitmapFactory.Options()
-        options.inPurgeable = true
-        var image: Bitmap = BitmapFactory.decodeByteArray(encodeByte, 0, encodeByte.size, options)
-        if (image.height < 700 && image.width < 700) {
-            return base64image
+    private suspend fun compress(file: File): File {
+        return Compressor.compress(this, file) {
+            resolution(1280, 720)
+            quality(80)
+            format(Bitmap.CompressFormat.WEBP)
+            size(2_097_152) // 2 MB
         }
-        val width = Integer.valueOf(image.width / 2)
-        val height = Integer.valueOf(image.height / 2)
-        image = Bitmap.createScaledBitmap(image, width, height, false)
-        val baos = ByteArrayOutputStream()
-        image.compress(Bitmap.CompressFormat.PNG, 100, baos)
-        val b: ByteArray = baos.toByteArray()
-        System.gc()
-        return Base64.encodeToString(b, Base64.NO_WRAP)
     }
 
     override fun onArtworkChange(bitmap: Bitmap) {
@@ -1019,7 +1024,7 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
     }
 
     private fun timestamp(): String {
-        return SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date());
+        return SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
     }
 
     private fun createAudioFile(): File {
