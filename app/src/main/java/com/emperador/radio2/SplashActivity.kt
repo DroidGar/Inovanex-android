@@ -111,6 +111,7 @@ class SplashActivity : AppCompatActivity(), Player.EventListener {
         val stringRequest = JsonObjectRequest(
             Request.Method.GET, url, null,
             Response.Listener<JSONObject> { response ->
+                Log.e("tag", response.toString())
                 prefs.edit().putString("configuration", response.toString()).apply()
                 flagConfigReady = true
                 next()

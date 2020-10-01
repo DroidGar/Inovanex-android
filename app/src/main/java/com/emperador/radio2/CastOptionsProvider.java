@@ -12,7 +12,7 @@ public class CastOptionsProvider implements OptionsProvider {
     @Override
     public CastOptions getCastOptions(Context context) {
         return new CastOptions.Builder()
-                .setReceiverApplicationId(context.getString(R.string.receiver_id))
+                .setReceiverApplicationId(BuildConfig.cast)
                 .build();
     }
     @Override

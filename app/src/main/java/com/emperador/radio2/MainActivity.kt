@@ -295,17 +295,16 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
             MediaMetadata.KEY_ALBUM_ARTIST,
             util.getDefault(Default.ARTIST_NAME)
         )
-//        metadata.putString(
-//            MediaMetadata.KEY_ALBUM_TITLE,
-//            "Otro dato"
-//        )
 
+
+        //TODO imagenes chrome cast
         val logo = util.getDefault(Default.CAST_LOGO)
         val back = util.getDefault(Default.CAST_BACK)
 
         metadata.addImage(WebImage(Uri.parse(logo)))
         metadata.addImage(WebImage(Uri.parse(back)))
         metadata.addImage(WebImage(Uri.parse(back)))
+        ////////////////////
 
         val mediaInfoAudio = Builder(util.getAudioSources()["audio-0"])
             .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
@@ -780,7 +779,6 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
      *          SOCKET
      *
      * */
-
     private fun initChat() {
 
         val viewManager = LinearLayoutManager(this).apply {
@@ -1253,17 +1251,14 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
                 if (util.isPortadaFija()) {
                     util.downloadImage(util.getDefault(Default.ARTWORK))
                 } else {
-                    Log.e("portada", "show ${util.showProgramImages()}, $currentProgram")
                     if (util.showProgramImages() && currentProgram != null) {
-                        Log.e("portada", currentProgram!!.image)
-
                         util.downloadImage(currentProgram!!.image)
                     } else {
-                        Log.e("portada", "sin portada")
                         util.getArtwork(songName, artistName)
                     }
                 }
 
+                // TODO aca pones el chekeo para mostrar nombre del programa
                 if (currentProgram != null) {
                     songName = currentProgram!!.title
                     artistName = currentProgram!!.locutor

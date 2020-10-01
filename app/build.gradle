@@ -10,8 +10,8 @@ android {
         abortOnError false
     }
     signingConfigs {
-        release {
-            storeFile file('/Users/eduardoholzmann/Develop/Android/Radio2/app/aspen/key.jks')
+        aspen {
+//            storeFile file('/Users/eduardoholzmann/Develop/Android/Radio2/app/keys/key.jks')
             storePassword '1q2w3e'
             keyAlias 'inovanexpush'
             keyPassword '1q2w3e'
@@ -32,6 +32,7 @@ android {
         buildConfigField "int", "id", "4"
         buildConfigField "int", "splash", "0"
         buildConfigField "String", "name", "\"Inovanex Radio\""
+        buildConfigField "String", "cast", "\"EB6FD2AE\""
         buildConfigField "String", "host", "\"https://apps.instream.audio\""
         buildConfigField "String", "provider", "\"com.inovanex.fileprovider\""
         resValue "string", "authorities", "com.inovanex.fileprovider"
@@ -42,7 +43,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.aspen
         }
     }
 
@@ -58,13 +59,17 @@ android {
             resValue "string", "app_name", "Aspen"
             applicationId "fmaspen.radio"
             buildConfigField "int", "id", "10"
-            buildConfigField "int", "splash", "0"
+            buildConfigField "int", "splash", "1"
+            buildConfigField "String", "cast", "\"EB6FD2AE\""
             buildConfigField "String", "name", "\"Aspen\""
             buildConfigField "String", "host", "\"https://panel.instream.audio\""
             buildConfigField "String", "provider", "\"fmaspen.radio.fileprovider\""
             resValue "string", "authorities", "fmaspen.radio.fileprovider"
-            // crear app para tv https://cast.google.com/publish/#/overview
+
+            signingConfig signingConfigs.aspen
         }
+
+
     }
 
 
