@@ -1,13 +1,12 @@
 package com.emperador.radio2
 
 import ConnectivityReceiver
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.*
 import android.content.res.Configuration
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.graphics.Matrix
 import android.graphics.drawable.Drawable
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -16,6 +15,7 @@ import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
+import android.provider.Settings
 import android.transition.Scene
 import android.util.Base64
 import android.util.DisplayMetrics
@@ -32,7 +32,6 @@ import android.widget.Toast.LENGTH_SHORT
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import androidx.exifinterface.media.ExifInterface
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.MultiTransformation
@@ -78,6 +77,7 @@ import com.google.android.gms.cast.MediaQueueItem
 import com.google.android.gms.cast.framework.*
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.images.WebImage
+import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.sothree.slidinguppanel.SlidingUpPanelLayout
 import id.zelory.compressor.Compressor
@@ -89,15 +89,13 @@ import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar.*
 import kotlinx.android.synthetic.main.scene1.*
+import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
-
-import kotlinx.coroutines.*
 
 enum class SourceType {
     AUDIO, VIDEO
@@ -154,6 +152,8 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
             ConnectivityReceiver(),
             IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
         )
+
+        checkDozeMode()
 
         util = Utilities(this, this)
 
@@ -267,6 +267,48 @@ class MainActivity : PermissionHandler(), MenuFragment.OnMenuListener, OnAdsList
         util.downloadImage(util.getDefault(Default.ARTWORK))
 
 
+    }
+
+    @SuppressLint("BatteryLife")
+    private fun checkDozeMode() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(POWER_SERVICE) as PowerManager
+            val packageName = BuildConfig.APPLICATION_ID //getPackageName();
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                val i = Intent()
+                i.action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                i.data = Uri.parse("package:$packageName")
+                try {
+                    startActivity(i)
+                } catch (e: ActivityNotFoundException) {
+                    val message =
+                        "Para permitir funcionar en 2do plano a " + getString(R.string.app_name) + ", desactiva la optimización de batería para esta app."
+                    val snackbar: Snackbar =
+                        Snackbar.make(layout_main, message, Snackbar.LENGTH_INDEFINITE)
+                            .setAction("ACEPTAR") {
+                                val settings = Intent()
+                                settings.action =
+                                    Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+                                try {
+                                    startActivity(settings)
+                                } catch (settingsNotFound: ActivityNotFoundException) {
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "Ha ocurrido un error",
+                                        LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                    val snackbarView: View = snackbar.view
+                    snackbarView.setBackgroundColor(Color.parseColor("#DE0019"))
+                    val snackTextView = snackbarView
+                        .findViewById<TextView>(R.id.snackbar_text)
+                    snackTextView.setTextColor(Color.parseColor("#FFFFFF"))
+                    snackTextView.maxLines = 4
+                    snackbar.show()
+                }
+            }
+        }
     }
 
     override fun onStart() {

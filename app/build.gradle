@@ -3,15 +3,17 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
+    
     lintOptions {
         checkReleaseBuilds true
         // Or, if you prefer, you can continue to check for errors in release builds,
         // but continue the build even when errors are found:
         abortOnError false
     }
+
     signingConfigs {
         aspen {
-//            storeFile file('/Users/eduardoholzmann/Develop/Android/Radio2/app/keys/key.jks')
+//          storeFile file('/Users/eduardoholzmann/Develop/Android/Radio2/app/keys/key.jks')
             storePassword '1q2w3e'
             keyAlias 'inovanexpush'
             keyPassword '1q2w3e'
@@ -68,11 +70,7 @@ android {
 
             signingConfig signingConfigs.aspen
         }
-
-
     }
-
-
 }
 
 dependencies {
@@ -91,6 +89,7 @@ dependencies {
     implementation 'com.google.android.gms:play-services-cast-framework:19.0.0'
 
     implementation 'com.github.bumptech.glide:glide:4.11.0'
+    implementation 'com.google.android.material:material:1.2.1'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
     implementation 'jp.wasabeef:glide-transformations:4.0.0'
 
